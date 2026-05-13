@@ -1,7 +1,5 @@
 //! Piece (NFT) models — owned pieces, burned-piece records, and the
 //! shared metadata/attribute shapes.
-//!
-//! Mirrors `pixiechess-client-py-old/src/pixiechess_client/models/pieces.py`.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -37,7 +35,7 @@ pub struct PieceMetadata {
 
 /// Tournament context attached to a burned piece. `name` and `color`
 /// are always present; `tournament_id` is absent on burns not tied to
-/// a tournament redemption (~32% of burned rows in the corpus).
+/// a tournament redemption.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct BurnedTournament {
@@ -48,8 +46,8 @@ pub struct BurnedTournament {
 }
 
 /// Burn record attached to a piece. `time` is the Unix-ish timestamp
-/// of the burn; `tournament` is always present in the corpus for burned
-/// pieces (server emits a stub block even when not tournament-linked).
+/// of the burn; `tournament` is always present (the server emits a stub
+/// block even when not tournament-linked).
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct BurnedInfo {
@@ -69,9 +67,8 @@ pub struct Piece {
     pub collection_address: String,
     pub token_id: i64,
     pub owner: String,
-    /// Almost always present, but a small fraction (~1 in 350 burned rows
-    /// in the sample) ship without `metadata` — when the underlying NFT
-    /// pre-dates the metadata pipeline.
+    /// Almost always present; a small fraction of older NFTs ship without
+    /// a `metadata` block.
     #[serde(default)]
     pub metadata: Option<PieceMetadata>,
     pub last_transfer_block_number: i64,
@@ -178,9 +175,8 @@ mod tests {
 
     #[test]
     fn burned_tournament_accepts_missing_tournament_id() {
-        // Per-corpus: ~32% of burned rows have no tournamentId (the burn
-        // wasn't tied to a tournament redemption). name + color stay
-        // required.
+        // Burns not tied to a tournament redemption omit tournamentId;
+        // name + color stay required.
         let raw = json!({"name": "Daily", "color": "white"});
         let t: BurnedTournament = serde_json::from_value(raw).unwrap();
         assert!(t.tournament_id.is_none());

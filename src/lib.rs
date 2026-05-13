@@ -61,28 +61,6 @@
 //!     .unwrap();
 //! ```
 //!
-//! # Shape-drift regression test
-//!
-//! A `tests/replay.rs` test loads a JSON corpus produced by
-//! `pixiechess-har-utils` and deserializes every captured response body into
-//! the model the client owns for that endpoint. Any failure means the live API
-//! has drifted from the typed model.
-//!
-//! # Behavior pinning (no-op params)
-//!
-//! Every advertised query param on a builder is verified against the live API:
-//!
-//! - **Honored** params stay and get a `tests/live.rs` effectiveness test
-//!   that pins the observed behavior (e.g. `page=2` returns ranks 16+,
-//!   `range=30d` returns ~4× the rows of `range=7d`).
-//! - **Silently-ignored** params (the server accepts them but they don't
-//!   change the response) are *dropped from the public builder* — not
-//!   deprecated. Advertising a no-op knob is misleading; on a 0.x surface
-//!   we'd rather make a clean break. If the server later starts honoring
-//!   one, we add the method back as a non-breaking minor bump.
-//!
-//! Run `python3 tools/audit_corpus.py` from the repo root to see the
-//! per-field stats that drive these decisions.
 
 mod client;
 mod error;

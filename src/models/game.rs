@@ -1,7 +1,5 @@
 //! Game models — single-game state plus the per-player rating-change
 //! response.
-//!
-//! Mirrors `pixiechess-client-py-old/src/pixiechess_client/models/game.py`.
 
 use std::collections::HashMap;
 
@@ -34,16 +32,12 @@ pub struct GameResult {
 
 /// Single-game state, returned by `GET /game/{gameId}`.
 ///
-/// `board` and `players` are intentionally kept as raw
-/// [`serde_json::Value`]: `board` is a full chess game-state document
-/// (move history, FEN, draw offers, piece-mapping, …) that would explode
-/// the model and bind the client tightly to upstream gameplay-engine
-/// internals, and `players` carries per-side runtime state whose schema
-/// genuinely varies between in-progress and finished games. The corpus
-/// captures only two examples; that's too few to confidently lock down
-/// the fields that vary by game state (`status`, `result`, `finished_at`,
-/// `tournament_id`, etc.), so those stay `Option<_>` until we have richer
-/// observation data.
+/// `board` and `players` are kept as raw [`serde_json::Value`]:
+/// `board` is a full chess game-state document (move history, FEN, draw
+/// offers, piece-mapping, …) and `players` carries per-side runtime state
+/// whose schema varies between in-progress and finished games.
+/// State-dependent fields (`status`, `result`, `finished_at`,
+/// `tournament_id`, …) are `Option<_>`.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Game {
@@ -78,7 +72,7 @@ pub struct Game {
     pub piece_selection_start_time: Option<i64>,
     /// Unix-milliseconds timestamp; the server emits this as a raw integer
     /// (not an RFC-3339 string like `created_at`/`updated_at`). Present on
-    /// finished games (~70% of captured records).
+    /// finished games.
     #[serde(default)]
     pub finished_at: Option<i64>,
     /// Only set when the server flips it; absent on most rows. Distinct
@@ -87,7 +81,7 @@ pub struct Game {
     #[serde(default)]
     pub rematch_declined: Option<bool>,
     /// Set on games where the resign was reconciled offline by a backfill
-    /// job. ~13% of finished games in the captured sample.
+    /// job.
     #[serde(default)]
     pub backfilled_early_resign: Option<bool>,
     /// `_meta.suggestSignup` prompt the server sometimes attaches.

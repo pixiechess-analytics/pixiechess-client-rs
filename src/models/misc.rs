@@ -1,6 +1,4 @@
 //! Miscellaneous models: public config, live-feed events, ETH/USD price.
-//!
-//! Mirrors `pixiechess-client-py-old/src/pixiechess_client/models/misc.py`.
 
 use std::collections::HashMap;
 

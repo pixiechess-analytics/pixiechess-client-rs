@@ -4,9 +4,7 @@ Unofficial async Rust client for the [PixieChess](https://www.pixiechess.xyz) AP
 
 > Not affiliated with PixieChess. Consumes the public `api.pixiechess.xyz` surface.
 
-## Status
-
-All read-only public endpoints covered (auth and websocket realtime are intentionally out of scope). Mirrors the resource split of the reference Python client.
+## Endpoints
 
 | Resource | Endpoints |
 |---|---|
@@ -18,6 +16,8 @@ All read-only public endpoints covered (auth and websocket realtime are intentio
 | `tournaments` | `GET /tournament/{list,details/{id},waitlist/{id}}` |
 | `misc` | `GET /config/public`, `GET /eth-usd-price`, `GET /vault-balance`, `GET /live-feed` |
 | `ranks` | `GET /ranks/masters` |
+
+Auth and websocket realtime are out of scope.
 
 ## Install
 
@@ -82,38 +82,6 @@ while let Some(entry) = s.next().await {
 }
 ```
 
-## Behavior pinning (no-op params)
-
-Every advertised query param is verified against the live API and pinned by an effectiveness test in `tests/live.rs`. Params that the server *accepts but silently ignores* are dropped from the public builder rather than deprecated — advertising a no-op knob is misleading.
-
-Confirmed Tier-1 (silently ignored, not exposed): `/leaderboard?pageSize`, `/tournament/list?sort`, `/live-feed?since`, `/live-feed?type`.
-
-Run `python3 tools/audit_corpus.py` to inspect the per-field stats that drive these decisions.
-
-## Shape-drift regression test
-
-`tests/replay.rs` reads a JSON corpus produced by
-[`pixiechess-har-utils`](https://github.com/pixiechess-analytics/pixiechess-har-utils)
-(vendored into `tests/fixtures/pixiechess-api.json`) and deserializes every
-captured response body into the model the client owns for that endpoint. Any
-failure means the live API has drifted from the typed model — fix the model,
-not the corpus.
-
-The corpus is not consulted at runtime; the client always makes real HTTP
-requests against `api.pixiechess.xyz`.
-
-To refresh the corpus, run `pcha` from the har-utils repo and overwrite
-`tests/fixtures/pixiechess-api.json` with the result.
-
-## Live smoke
-
-`tests/live.rs` carries one `#[tokio::test] #[ignore]` per endpoint group that
-hits the real API. Ignored by default; run on demand:
-
-```text
-cargo test --test live -- --ignored
-```
-
 ## Custom User-Agent
 
 The upstream WAF returns a `202` empty-body challenge to non-browser-shaped user agents, so the default `User-Agent` mirrors a recent Chrome build (`pixiechess_client::DEFAULT_USER_AGENT`). To identify your own integration without losing WAF compatibility, suffix the default rather than replacing it:
@@ -140,3 +108,7 @@ let client = PixieChessClient::builder()
 ## License
 
 MIT. See [`LICENSE`](LICENSE).
+
+---
+
+See [`DEVELOPMENT.md`](DEVELOPMENT.md) for notes on how the API surface is kept in sync with the upstream and how no-op query params are filtered out.

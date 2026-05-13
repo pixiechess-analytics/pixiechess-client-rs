@@ -1,8 +1,7 @@
 //! Typed models for `api.pixiechess.xyz` response bodies.
 //!
-//! Names mirror the reference Python client at `pixiechess-client-py-old`.
-//! Each model derives `Deserialize` (via serde) with `camelCase` aliasing —
-//! field names are `snake_case` in Rust, `camelCase` on the wire.
+//! Each model derives `Deserialize` with `camelCase` aliasing — field names
+//! are `snake_case` in Rust, `camelCase` on the wire.
 
 pub mod auctions;
 pub mod common;
