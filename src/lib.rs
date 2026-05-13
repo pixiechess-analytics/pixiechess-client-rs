@@ -16,6 +16,7 @@
 mod client;
 mod error;
 mod http;
+pub mod models;
 
 pub use client::{PixieChessClient, PixieChessClientBuilder};
 pub use error::{Error, Result};
