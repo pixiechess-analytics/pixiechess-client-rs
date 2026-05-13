@@ -20,7 +20,9 @@ pub struct PlayerInfo {
     pub address: String,
     pub username: String,
     pub username_display: String,
-    pub helmet: Helmet,
+    /// Absent for users who haven't equipped one.
+    #[serde(default)]
+    pub helmet: Option<Helmet>,
 }
 
 /// Marker the server attaches when it wants the client to prompt the
@@ -106,7 +108,7 @@ mod tests {
         assert_eq!(p.address, "0xabc");
         assert_eq!(p.username, "alice");
         assert_eq!(p.username_display, "Alice");
-        assert_eq!(p.helmet.key, "knightmare");
+        assert_eq!(p.helmet.as_ref().unwrap().key, "knightmare");
     }
 
     #[test]

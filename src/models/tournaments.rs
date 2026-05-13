@@ -47,7 +47,9 @@ pub struct TournamentColors {
 pub struct TournamentUserInfo {
     pub user_id: String,
     pub username_display: String,
-    pub helmet: Helmet,
+    /// Absent for users who haven't equipped one.
+    #[serde(default)]
+    pub helmet: Option<Helmet>,
     pub expires: i64,
     #[serde(default)]
     pub chosen_pieces: Vec<String>,

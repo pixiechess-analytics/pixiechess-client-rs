@@ -33,7 +33,9 @@ pub struct User {
     pub username: String,
     pub username_display: String,
     pub wallet_client_type: String,
-    pub helmet: Helmet,
+    /// Absent for users who haven't equipped one.
+    #[serde(default)]
+    pub helmet: Option<Helmet>,
     pub last_login: DateTime<Utc>,
 
     pub win_rate: u32,
@@ -145,7 +147,7 @@ mod tests {
         assert_eq!(u.wins, 65);
         assert_eq!(u.color_record["white"].wins, 30);
         assert_eq!(u.points, 4500);
-        assert_eq!(u.helmet.key, "knightmare");
+        assert_eq!(u.helmet.as_ref().unwrap().key, "knightmare");
     }
 
     #[test]
