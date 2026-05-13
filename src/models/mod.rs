@@ -7,6 +7,7 @@
 pub mod common;
 pub mod game;
 pub mod leaderboard;
+pub mod pieces;
 pub mod user;
 
 pub use common::{Helmet, PlayerInfo, ResponseMeta, SuggestSignup};
@@ -15,4 +16,5 @@ pub use leaderboard::{
     LeaderboardEntry, LeaderboardPage, LeaderboardStats, PointsLeaderboardEntry,
     PointsLeaderboardPage,
 };
+pub use pieces::{BurnedInfo, BurnedTournament, Piece, PieceAttribute, PieceMetadata, PiecesPage};
 pub use user::{ColorRecord, MatchHistoryEntry, MatchHistoryPage, MatchTiming, User};

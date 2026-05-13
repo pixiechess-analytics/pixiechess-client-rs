@@ -7,4 +7,5 @@
 
 pub mod games;
 pub mod leaderboard;
+pub mod pieces;
 pub mod users;
