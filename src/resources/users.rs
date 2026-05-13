@@ -1,11 +1,15 @@
 //! User-related endpoints: `GET /user/{identifier}` and
 //! `GET /user/match-history/{address}`.
 
+use std::pin::Pin;
+
+use futures::Stream;
 use serde::Deserialize;
 
 use crate::Result;
 use crate::http::HttpClient;
-use crate::models::user::{MatchHistoryPage, User};
+use crate::models::user::{MatchHistoryEntry, MatchHistoryPage, User};
+use crate::pagination::page_stream;
 
 /// Accessor for user-related endpoints. Obtained from
 /// [`PixieChessClient::users`](crate::PixieChessClient::users).
@@ -46,6 +50,25 @@ impl<'c> UsersResource<'c> {
             http: self.http,
             address: address.into(),
             page: 1,
+            limit: 15,
+        }
+    }
+
+    /// Iterate every match in a user's history, fetching pages on demand.
+    ///
+    /// ```ignore
+    /// use futures::StreamExt;
+    ///
+    /// let mut stream = client.users().match_history_iter("0xabc...").send();
+    /// while let Some(entry) = stream.next().await {
+    ///     let entry = entry?;
+    ///     // …
+    /// }
+    /// ```
+    pub fn match_history_iter(&self, address: impl Into<String>) -> MatchHistoryIterBuilder<'c> {
+        MatchHistoryIterBuilder {
+            http: self.http,
+            address: address.into(),
             limit: 15,
         }
     }
@@ -155,8 +178,58 @@ impl MatchHistoryBuilder<'_> {
     }
 }
 
+// `GET /user/match-history/{address}` (auto-paginating) ---------------
+
+/// Builder for [`UsersResource::match_history_iter`]. The terminal
+/// method `.send()` returns a [`Stream`] that yields every match in the
+/// user's history, fetching pages on demand. Stops when an empty page
+/// comes back (the live API doesn't report `totalPages` on this
+/// endpoint).
+pub struct MatchHistoryIterBuilder<'c> {
+    http: &'c HttpClient,
+    address: String,
+    limit: u32,
+}
+
+impl MatchHistoryIterBuilder<'_> {
+    /// Set the per-page batch size used internally while iterating.
+    /// Default: `15` (matches the live API).
+    #[must_use]
+    pub fn limit(mut self, limit: u32) -> Self {
+        self.limit = limit;
+        self
+    }
+
+    /// Begin streaming entries. The returned [`Stream`] short-circuits
+    /// on the first empty page.
+    #[must_use]
+    pub fn send(self) -> Pin<Box<dyn Stream<Item = Result<MatchHistoryEntry>> + Send>> {
+        let http = self.http.clone();
+        let address = self.address;
+        let limit = self.limit;
+        page_stream(
+            move |page| {
+                let http = http.clone();
+                let path = format!("/user/match-history/{address}");
+                let params = [("page", page.to_string()), ("limit", limit.to_string())];
+                async move { http.get_with_params(&path, &params).await }
+            },
+            |data| {
+                let matches = data
+                    .get("matches")
+                    .cloned()
+                    .unwrap_or(serde_json::Value::Array(vec![]));
+                let entries: Vec<MatchHistoryEntry> = serde_json::from_value(matches)?;
+                Ok(entries)
+            },
+            None,
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use futures::StreamExt;
     use serde_json::json;
     use wiremock::matchers::{method, path, query_param};
     use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -256,6 +329,49 @@ mod tests {
             .unwrap();
         let page = client.users().match_history("0xabc").send().await.unwrap();
         assert!(page.matches.is_empty());
+    }
+
+    #[tokio::test]
+    async fn match_history_iter_walks_pages_and_stops_on_empty() {
+        let server = MockServer::start().await;
+        // Page 1 returns two entries; page 2 returns an empty matches array.
+        // The stream stops on the empty page without further requests.
+        let entry = |game: &str| {
+            json!({
+                "gameId": game,
+                "createdAt": "2026-05-13T12:00:00Z",
+                "white": {"address": "0xaaa"},
+                "black": {"address": "0xbbb"},
+                "resultForUser": "win",
+                "outcome": "checkmate",
+                "rated": true,
+                "timing": {"whiteElapsedMs": 1, "blackElapsedMs": 2, "clockMs": 3},
+            })
+        };
+        Mock::given(method("GET"))
+            .and(path("/user/match-history/0xabc"))
+            .and(query_param("page", "1"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "matches": [entry("g1"), entry("g2")],
+            })))
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/user/match-history/0xabc"))
+            .and(query_param("page", "2"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({"matches": []})))
+            .mount(&server)
+            .await;
+
+        let client = PixieChessClient::builder()
+            .base_url(server.uri())
+            .build()
+            .unwrap();
+        let stream = client.users().match_history_iter("0xabc").send();
+        let collected: Vec<_> = stream.collect().await;
+        assert_eq!(collected.len(), 2);
+        assert_eq!(collected[0].as_ref().unwrap().game_id, "g1");
+        assert_eq!(collected[1].as_ref().unwrap().game_id, "g2");
     }
 
     #[tokio::test]
