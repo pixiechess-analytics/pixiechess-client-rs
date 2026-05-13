@@ -106,6 +106,20 @@ hits the real API. Ignored by default; run on demand:
 cargo test --test live -- --ignored
 ```
 
+## Custom User-Agent
+
+The upstream WAF returns a `202` empty-body challenge to non-browser-shaped user agents, so the default `User-Agent` mirrors a recent Chrome build (`pixiechess_client::DEFAULT_USER_AGENT`). To identify your own integration without losing WAF compatibility, suffix the default rather than replacing it:
+
+```rust
+use pixiechess_client::{DEFAULT_USER_AGENT, PixieChessClient};
+
+let client = PixieChessClient::builder()
+    .user_agent(format!("{DEFAULT_USER_AGENT} my-app/1.0"))
+    .build()?;
+```
+
+`PixieChessClientBuilder::user_agent` has replace semantics, so a fully-custom UA is fine too — just be aware the WAF may reject it.
+
 ## Stack
 
 - Rust, edition 2024, MSRV 1.85

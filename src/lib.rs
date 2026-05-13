@@ -45,6 +45,22 @@
 //! [`futures::Stream`](https://docs.rs/futures/latest/futures/stream/trait.Stream.html)
 //! walking every page.
 //!
+//! # Custom User-Agent
+//!
+//! The upstream WAF returns a `202` empty-body challenge to non-browser-shaped
+//! user agents, so the default `User-Agent` mirrors a recent Chrome build (see
+//! [`DEFAULT_USER_AGENT`]). To identify your own integration safely, suffix the
+//! default via [`PixieChessClientBuilder::user_agent`]:
+//!
+//! ```no_run
+//! use pixiechess_client::{DEFAULT_USER_AGENT, PixieChessClient};
+//!
+//! let client = PixieChessClient::builder()
+//!     .user_agent(format!("{DEFAULT_USER_AGENT} my-app/1.0"))
+//!     .build()
+//!     .unwrap();
+//! ```
+//!
 //! # Shape-drift regression test
 //!
 //! A `tests/replay.rs` test loads a JSON corpus produced by
@@ -61,3 +77,4 @@ pub mod resources;
 
 pub use client::{PixieChessClient, PixieChessClientBuilder};
 pub use error::{Error, Result};
+pub use http::DEFAULT_USER_AGENT;

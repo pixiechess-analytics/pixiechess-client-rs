@@ -19,6 +19,25 @@ use crate::error::{Error, Result};
 /// Default base URL of the `PixieChess` API.
 pub(crate) const DEFAULT_BASE_URL: &str = "https://api.pixiechess.xyz";
 
+/// Default `User-Agent` sent on every outbound request.
+///
+/// The upstream WAF returns a `202` empty-body challenge to non-browser-shaped
+/// user agents, so the default mirrors a recent Chrome/Linux build. Callers
+/// who want to identify their own integration can override this via
+/// [`PixieChessClientBuilder::user_agent`](crate::PixieChessClientBuilder::user_agent)
+/// — but doing so on a UA the WAF doesn't accept will start returning empty
+/// bodies. The safe pattern for identification is to suffix this constant:
+///
+/// ```no_run
+/// use pixiechess_client::{DEFAULT_USER_AGENT, PixieChessClient};
+///
+/// let client = PixieChessClient::builder()
+///     .user_agent(format!("{DEFAULT_USER_AGENT} my-app/1.0"))
+///     .build()
+///     .unwrap();
+/// ```
+pub const DEFAULT_USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
 /// HTTP client wrapping a [`reqwest::Client`] and a base URL.
 ///
 /// Browser-mimicking headers are baked in at construction because the API
@@ -33,9 +52,11 @@ pub(crate) struct HttpClient {
 impl HttpClient {
     /// Construct a client pointing at `base_url`, with the default
     /// browser-mimicking headers attached.
-    pub(crate) fn new(base_url: &str) -> Result<Self> {
+    ///
+    /// `user_agent` overrides [`DEFAULT_USER_AGENT`] when provided.
+    pub(crate) fn new(base_url: &str, user_agent: Option<&str>) -> Result<Self> {
         let inner = reqwest::Client::builder()
-            .default_headers(default_headers())
+            .default_headers(default_headers(user_agent.unwrap_or(DEFAULT_USER_AGENT))?)
             .build()?;
         let base_url = Url::parse(base_url).map_err(|e| Error::Api {
             status: 0,
@@ -101,7 +122,7 @@ async fn handle_response<T: DeserializeOwned>(resp: reqwest::Response) -> Result
 /// The API rejects requests without same-site `Origin` / `Referer`; the
 /// other headers mirror what a real browser sends to keep us out of
 /// edge-case branches in the upstream WAF.
-fn default_headers() -> HeaderMap {
+fn default_headers(user_agent: &str) -> Result<HeaderMap> {
     let mut h = HeaderMap::new();
     h.insert(
         header::ORIGIN,
@@ -111,16 +132,11 @@ fn default_headers() -> HeaderMap {
         header::REFERER,
         HeaderValue::from_static("https://www.pixiechess.xyz/"),
     );
-    // The upstream WAF returns a 202 challenge to non-browser-shaped
-    // user agents. We mirror a recent Chrome/Linux UA to stay on the
-    // happy path; the resource code path is otherwise identical.
-    h.insert(
-        header::USER_AGENT,
-        HeaderValue::from_static(
-            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 \
-             (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        ),
-    );
+    let ua = HeaderValue::from_str(user_agent).map_err(|e| Error::Api {
+        status: 0,
+        message: format!("invalid User-Agent: {e}"),
+    })?;
+    h.insert(header::USER_AGENT, ua);
     h.insert(header::ACCEPT, HeaderValue::from_static("*/*"));
     h.insert(
         header::ACCEPT_LANGUAGE,
@@ -129,7 +145,7 @@ fn default_headers() -> HeaderMap {
     h.insert("sec-fetch-dest", HeaderValue::from_static("empty"));
     h.insert("sec-fetch-mode", HeaderValue::from_static("cors"));
     h.insert("sec-fetch-site", HeaderValue::from_static("same-site"));
-    h
+    Ok(h)
 }
 
 #[cfg(test)]
@@ -158,7 +174,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = HttpClient::new(&server.uri()).unwrap();
+        let client = HttpClient::new(&server.uri(), None).unwrap();
         let user: TestUser = client.get("/users/42").await.unwrap();
         assert_eq!(
             user,
@@ -180,7 +196,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = HttpClient::new(&server.uri()).unwrap();
+        let client = HttpClient::new(&server.uri(), None).unwrap();
         let v: serde_json::Value = client
             .get_with_params(
                 "/leaderboard",
@@ -202,7 +218,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = HttpClient::new(&server.uri()).unwrap();
+        let client = HttpClient::new(&server.uri(), None).unwrap();
         let v = client.get_json("/raw").await.unwrap();
         assert_eq!(v["a"], 1);
         assert_eq!(v["b"][0], 2);
@@ -217,7 +233,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = HttpClient::new(&server.uri()).unwrap();
+        let client = HttpClient::new(&server.uri(), None).unwrap();
         let res: Result<serde_json::Value> = client.get("/missing").await;
         match res {
             Err(Error::NotFound(body)) => assert!(body.contains("not here")),
@@ -234,7 +250,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = HttpClient::new(&server.uri()).unwrap();
+        let client = HttpClient::new(&server.uri(), None).unwrap();
         let res: Result<serde_json::Value> = client.get("/broken").await;
         match res {
             Err(Error::Api { status, message }) => {
@@ -254,8 +270,55 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = HttpClient::new(&server.uri()).unwrap();
+        let client = HttpClient::new(&server.uri(), None).unwrap();
         let res: Result<serde_json::Value> = client.get("/garbage").await;
         assert!(matches!(res, Err(Error::Decode(_))));
+    }
+
+    #[tokio::test]
+    async fn default_user_agent_reaches_the_wire() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/ua"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({})))
+            .mount(&server)
+            .await;
+        let client = HttpClient::new(&server.uri(), None).unwrap();
+        let _: serde_json::Value = client.get("/ua").await.unwrap();
+        let reqs = server.received_requests().await.unwrap();
+        let ua = reqs[0]
+            .headers
+            .get("user-agent")
+            .expect("user-agent should be present")
+            .to_str()
+            .unwrap();
+        assert_eq!(ua, DEFAULT_USER_AGENT);
+    }
+
+    #[tokio::test]
+    async fn custom_user_agent_overrides_default() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/ua"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({})))
+            .mount(&server)
+            .await;
+        let client = HttpClient::new(&server.uri(), Some("my-app/1.0")).unwrap();
+        let _: serde_json::Value = client.get("/ua").await.unwrap();
+        let reqs = server.received_requests().await.unwrap();
+        let ua = reqs[0]
+            .headers
+            .get("user-agent")
+            .expect("user-agent should be present")
+            .to_str()
+            .unwrap();
+        assert_eq!(ua, "my-app/1.0");
+    }
+
+    #[tokio::test]
+    async fn invalid_user_agent_returns_api_error() {
+        // A newline isn't a valid header value.
+        let res = HttpClient::new("http://localhost:9999", Some("bad\nua"));
+        assert!(matches!(res, Err(Error::Api { .. })));
     }
 }
