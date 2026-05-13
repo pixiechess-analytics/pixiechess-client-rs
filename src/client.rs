@@ -5,7 +5,9 @@ use crate::http::{DEFAULT_BASE_URL, HttpClient};
 use crate::resources::auctions::AuctionsResource;
 use crate::resources::games::GamesResource;
 use crate::resources::leaderboard::LeaderboardResource;
+use crate::resources::misc::MiscResource;
 use crate::resources::pieces::PiecesResource;
+use crate::resources::ranks::RanksResource;
 use crate::resources::tournaments::TournamentsResource;
 use crate::resources::users::UsersResource;
 
@@ -78,6 +80,19 @@ impl PixieChessClient {
     #[must_use]
     pub fn tournaments(&self) -> TournamentsResource<'_> {
         TournamentsResource::new(&self.http)
+    }
+
+    /// Miscellaneous endpoints (`GET /config/public`, `GET /eth-usd-price`,
+    /// `GET /vault-balance`, `GET /live-feed`).
+    #[must_use]
+    pub fn misc(&self) -> MiscResource<'_> {
+        MiscResource::new(&self.http)
+    }
+
+    /// Ranks endpoints (`GET /ranks/masters`).
+    #[must_use]
+    pub fn ranks(&self) -> RanksResource<'_> {
+        RanksResource::new(&self.http)
     }
 }
 

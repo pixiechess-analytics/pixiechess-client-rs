@@ -8,6 +8,7 @@ pub mod auctions;
 pub mod common;
 pub mod game;
 pub mod leaderboard;
+pub mod misc;
 pub mod pieces;
 pub mod tournaments;
 pub mod user;
@@ -23,6 +24,7 @@ pub use leaderboard::{
     LeaderboardEntry, LeaderboardPage, LeaderboardStats, PointsLeaderboardEntry,
     PointsLeaderboardPage,
 };
+pub use misc::{EthUsdPrice, LiveFeedEvent, PublicConfig};
 pub use pieces::{BurnedInfo, BurnedTournament, Piece, PieceAttribute, PieceMetadata, PiecesPage};
 pub use tournaments::{
     BurnRuleset, GameTiming, GameTimingPlayer, GameplayRuleset, NotificationStatus, PayoutSplit,

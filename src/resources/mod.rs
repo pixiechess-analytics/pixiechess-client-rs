@@ -8,6 +8,8 @@
 pub mod auctions;
 pub mod games;
 pub mod leaderboard;
+pub mod misc;
 pub mod pieces;
+pub mod ranks;
 pub mod tournaments;
 pub mod users;
