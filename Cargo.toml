@@ -1,0 +1,22 @@
+[package]
+name = "pixiechess-client"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT"
+description = "Unofficial async Rust client for the PixieChess API"
+repository = "https://github.com/pixiechess-analytics/pixiechess-client-rs"
+readme = "README.md"
+keywords = ["pixiechess", "api-client", "async"]
+categories = ["api-bindings", "web-programming::http-client"]
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+
+[dependencies]
+
+[dev-dependencies]

@@ -1,0 +1,14 @@
+# Rust build artefacts
+target/
+
+# Editor / OS noise
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Captured HARs and consolidator outputs are operator-side — never tracked.
+*.har
+pixiechess-api.json
+api-reference.json
+api-reference.md
