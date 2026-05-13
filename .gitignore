@@ -8,7 +8,9 @@ target/
 .vscode/
 
 # Captured HARs and consolidator outputs are operator-side — never tracked.
+# Exception: a vendored snapshot lives under tests/fixtures/ for the replay test.
 *.har
 pixiechess-api.json
+!tests/fixtures/pixiechess-api.json
 api-reference.json
 api-reference.md

@@ -65,8 +65,10 @@ pub struct Game {
     pub piece_selection_timeout_ms: Option<u64>,
     #[serde(default)]
     pub piece_selection_start_time: Option<i64>,
+    /// Unix-milliseconds timestamp; the server emits this as a raw integer
+    /// (not an RFC-3339 string like `created_at`/`updated_at`).
     #[serde(default)]
-    pub finished_at: Option<DateTime<Utc>>,
+    pub finished_at: Option<i64>,
     #[serde(default)]
     pub rematch_declined: bool,
     #[serde(default)]
@@ -126,7 +128,7 @@ mod tests {
                 "ending": {"pieceKey": "queen"},
             },
             "rated": true,
-            "finishedAt": "2026-05-13T12:34:56Z",
+            "finishedAt": 1_778_675_002_726_i64,
         });
         let g: Game = serde_json::from_value(raw).unwrap();
         assert_eq!(g.tournament_id.as_deref(), Some("tournament_175_xyz"));
