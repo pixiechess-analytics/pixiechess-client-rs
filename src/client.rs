@@ -1,11 +1,8 @@
 //! Entry point for the `PixieChess` client.
 
-// The `http` field is read once the first resource accessor lands in
-// `feat/users-resource` — drop this allow then.
-#![allow(dead_code)]
-
 use crate::Result;
 use crate::http::{DEFAULT_BASE_URL, HttpClient};
+use crate::resources::users::UsersResource;
 
 /// Async client for `api.pixiechess.xyz`.
 ///
@@ -37,6 +34,13 @@ impl PixieChessClient {
     #[must_use]
     pub fn builder() -> PixieChessClientBuilder {
         PixieChessClientBuilder::default()
+    }
+
+    /// User-related endpoints (`GET /user/{identifier}`,
+    /// `GET /user/match-history/{address}`).
+    #[must_use]
+    pub fn users(&self) -> UsersResource<'_> {
+        UsersResource::new(&self.http)
     }
 }
 

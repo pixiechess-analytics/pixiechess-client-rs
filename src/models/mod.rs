@@ -5,5 +5,7 @@
 //! field names are `snake_case` in Rust, `camelCase` on the wire.
 
 pub mod common;
+pub mod user;
 
 pub use common::{Helmet, PlayerInfo, ResponseMeta, SuggestSignup};
+pub use user::{ColorRecord, MatchHistoryEntry, MatchHistoryPage, MatchTiming, User};
