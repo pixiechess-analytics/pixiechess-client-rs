@@ -6,4 +6,5 @@
 //! [`serde_json::Value`] for callers that want to bypass deserialization.
 
 pub mod games;
+pub mod leaderboard;
 pub mod users;
