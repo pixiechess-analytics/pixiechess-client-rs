@@ -6,6 +6,7 @@ use crate::resources::auctions::AuctionsResource;
 use crate::resources::games::GamesResource;
 use crate::resources::leaderboard::LeaderboardResource;
 use crate::resources::pieces::PiecesResource;
+use crate::resources::tournaments::TournamentsResource;
 use crate::resources::users::UsersResource;
 
 /// Async client for `api.pixiechess.xyz`.
@@ -70,6 +71,13 @@ impl PixieChessClient {
     #[must_use]
     pub fn auctions(&self) -> AuctionsResource<'_> {
         AuctionsResource::new(&self.http)
+    }
+
+    /// Tournament endpoints (`GET /tournament/list`,
+    /// `GET /tournament/details/{id}`, `GET /tournament/waitlist/{id}`).
+    #[must_use]
+    pub fn tournaments(&self) -> TournamentsResource<'_> {
+        TournamentsResource::new(&self.http)
     }
 }
 
