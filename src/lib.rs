@@ -17,6 +17,7 @@ mod client;
 mod error;
 mod http;
 pub mod models;
+mod pagination;
 pub mod resources;
 
 pub use client::{PixieChessClient, PixieChessClientBuilder};
