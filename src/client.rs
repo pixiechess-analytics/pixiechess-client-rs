@@ -4,6 +4,7 @@ use crate::Result;
 use crate::http::{DEFAULT_BASE_URL, HttpClient};
 use crate::resources::games::GamesResource;
 use crate::resources::leaderboard::LeaderboardResource;
+use crate::resources::pieces::PiecesResource;
 use crate::resources::users::UsersResource;
 
 /// Async client for `api.pixiechess.xyz`.
@@ -56,6 +57,12 @@ impl PixieChessClient {
     #[must_use]
     pub fn leaderboard(&self) -> LeaderboardResource<'_> {
         LeaderboardResource::new(&self.http)
+    }
+
+    /// Piece endpoints (`GET /pieces/{address}`, `GET /burned-pieces/{address}`).
+    #[must_use]
+    pub fn pieces(&self) -> PiecesResource<'_> {
+        PiecesResource::new(&self.http)
     }
 }
 
