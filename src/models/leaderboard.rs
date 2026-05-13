@@ -8,6 +8,10 @@ use serde::{Deserialize, Serialize};
 use crate::models::common::Helmet;
 
 /// One row from `GET /leaderboard`.
+///
+/// `current_game_id` / `current_game_player` only appear on rows whose
+/// player is mid-match (~4% of captured rows); everything else is always
+/// present per the corpus audit.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct LeaderboardEntry {
@@ -15,13 +19,11 @@ pub struct LeaderboardEntry {
     pub address: String,
     pub username: String,
     pub username_display: String,
-    #[serde(default)]
-    pub helmet: Option<Helmet>,
+    pub helmet: Helmet,
     pub rating: f64,
     pub is_provisional: bool,
     pub games_played: u32,
-    #[serde(default)]
-    pub genuine_games_played: Option<u32>,
+    pub genuine_games_played: u32,
     pub wins: u32,
     pub streak: i32,
     pub is_online: bool,
@@ -42,6 +44,12 @@ pub struct LeaderboardStats {
 }
 
 /// One page of `GET /leaderboard`.
+///
+/// `current_user`'s shape varies with the caller's auth state — this
+/// client doesn't model the auth surface, so the field is intentionally
+/// kept as raw [`serde_json::Value`]. Inside the captured (unauthenticated)
+/// corpus it carries a minimal `{rank: null, rating, streak, wins, …}`
+/// projection; a logged-in caller may get a richer payload.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct LeaderboardPage {
@@ -51,8 +59,7 @@ pub struct LeaderboardPage {
     pub total_pages: u32,
     #[serde(default)]
     pub current_user: Option<serde_json::Value>,
-    #[serde(default)]
-    pub stats: Option<LeaderboardStats>,
+    pub stats: LeaderboardStats,
 }
 
 /// One row from `GET /points-leaderboard`.
@@ -63,20 +70,35 @@ pub struct PointsLeaderboardEntry {
     pub address: String,
     pub username: String,
     pub username_display: String,
-    #[serde(default)]
-    pub helmet: Option<Helmet>,
+    pub helmet: Helmet,
     pub total_points: u64,
     pub today: u64,
     pub this_week: u64,
     pub rank_change: i32,
     pub is_online: bool,
-    #[serde(default)]
-    pub rating: Option<f64>,
-    #[serde(default)]
-    pub genuine_games_played: Option<u32>,
+    pub rating: f64,
+    pub genuine_games_played: u32,
+}
+
+/// Compact `current_user` projection that the points-leaderboard endpoint
+/// attaches when the caller is identified (or as a zeroed placeholder for
+/// guest requests). Distinct from [`PointsLeaderboardEntry`] because the
+/// payload omits address/username/helmet/etc.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct PointsLeaderboardCurrentUser {
+    pub rank: u32,
+    pub rank_change: i32,
+    pub total_points: u64,
+    pub today: u64,
+    pub this_week: u64,
 }
 
 /// One page of `GET /points-leaderboard`.
+///
+/// `current_user` only appears when the caller is authenticated; the
+/// corpus was captured signed-in, but unauthenticated callers will see
+/// it absent.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct PointsLeaderboardPage {
@@ -85,7 +107,7 @@ pub struct PointsLeaderboardPage {
     pub page: u32,
     pub total_pages: u32,
     #[serde(default)]
-    pub current_user: Option<serde_json::Value>,
+    pub current_user: Option<PointsLeaderboardCurrentUser>,
 }
 
 #[cfg(test)]
@@ -111,12 +133,29 @@ mod tests {
         })
     }
 
+    fn points_entry_payload() -> serde_json::Value {
+        json!({
+            "rank": 7,
+            "address": "0xdef",
+            "username": "bob",
+            "usernameDisplay": "Bob",
+            "helmet": {"key": "knightmare", "color": "green"},
+            "totalPoints": 5000,
+            "today": 120,
+            "thisWeek": 800,
+            "rankChange": -2,
+            "isOnline": false,
+            "rating": 1750.0,
+            "genuineGamesPlayed": 60,
+        })
+    }
+
     #[test]
     fn leaderboard_entry_full() {
         let e: LeaderboardEntry = serde_json::from_value(entry_payload()).unwrap();
         assert_eq!(e.rank, 1);
         assert_eq!(e.username, "alice");
-        assert!(e.helmet.is_some());
+        assert_eq!(e.helmet.key, "knightmare");
     }
 
     #[test]
@@ -135,28 +174,15 @@ mod tests {
         let page: LeaderboardPage = serde_json::from_value(raw).unwrap();
         assert_eq!(page.entries.len(), 1);
         assert_eq!(page.total_pages, 4);
-        let s = page.stats.unwrap();
-        assert_eq!(s.total_ranked_players, 100);
+        assert_eq!(page.stats.total_ranked_players, 100);
     }
 
     #[test]
-    fn points_leaderboard_entry_minimal() {
-        // `rating`, `genuineGamesPlayed`, and `helmet` are all optional.
-        let raw = json!({
-            "rank": 7,
-            "address": "0xdef",
-            "username": "bob",
-            "usernameDisplay": "Bob",
-            "totalPoints": 5000,
-            "today": 120,
-            "thisWeek": 800,
-            "rankChange": -2,
-            "isOnline": false,
-        });
-        let e: PointsLeaderboardEntry = serde_json::from_value(raw).unwrap();
+    fn points_leaderboard_entry_full() {
+        let e: PointsLeaderboardEntry = serde_json::from_value(points_entry_payload()).unwrap();
         assert_eq!(e.rank, 7);
         assert_eq!(e.total_points, 5000);
-        assert!(e.rating.is_none());
+        assert_eq!(e.helmet.key, "knightmare");
     }
 
     #[test]
@@ -166,9 +192,28 @@ mod tests {
             "totalCount": 0,
             "page": 1,
             "totalPages": 0,
+            "currentUser": {
+                "rank": 0,
+                "rankChange": 0,
+                "totalPoints": 0,
+                "today": 0,
+                "thisWeek": 0,
+            },
         });
         let page: PointsLeaderboardPage = serde_json::from_value(raw).unwrap();
         assert!(page.entries.is_empty());
+        assert_eq!(page.current_user.as_ref().unwrap().rank, 0);
+    }
+
+    #[test]
+    fn points_leaderboard_page_omits_current_user_when_unauthenticated() {
+        let raw = json!({
+            "entries": [],
+            "totalCount": 0,
+            "page": 1,
+            "totalPages": 0,
+        });
+        let page: PointsLeaderboardPage = serde_json::from_value(raw).unwrap();
         assert!(page.current_user.is_none());
     }
 }

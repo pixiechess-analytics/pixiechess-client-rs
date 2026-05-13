@@ -126,28 +126,81 @@ pub struct PayoutSplit {
     pub percentage: f64,
 }
 
+/// Pointer to a parent matchup in the tournament bracket. Attached to a
+/// later-round [`MatchupEntry`] via [`SourceMatches`].
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct MatchupSource {
+    pub round: u32,
+    pub position: u32,
+    #[serde(default, rename = "_id")]
+    pub id: Option<String>,
+}
+
+/// Bracket parents for a matchup. `null` on first-round entries.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SourceMatches {
+    pub top: MatchupSource,
+    pub bottom: MatchupSource,
+    #[serde(default, rename = "_id")]
+    pub id: Option<String>,
+}
+
+/// One bracket cell in `Tournament.matchups_by_round`. `gameId` is unset
+/// for matchups whose game hasn't been played yet (~14% of captured
+/// matchups); `sourceMatches` is unset for first-round entries.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct MatchupEntry {
+    #[serde(rename = "_id")]
+    pub id: String,
+    pub user_ids: Vec<String>,
+    #[serde(default)]
+    pub game_id: Option<String>,
+    pub winner_id: String,
+    pub round: u32,
+    pub match_position: u32,
+    #[serde(default)]
+    pub source_matches: Option<SourceMatches>,
+    pub rematch_count: u32,
+    #[serde(default)]
+    pub draw: Option<bool>,
+}
+
 /// A single tournament listing.
+///
+/// Used by both `GET /tournament/list` (row projection) and
+/// `GET /tournament/details/{id}.data` (full record). Fields present in
+/// *both* payloads are required; fields exclusive to one are optional.
+/// Per the corpus audit, `tournament_id`, `name`, `description`, `images`,
+/// `colors`, `slots`, `prize_amount`, `prize_currency`, `start_time`,
+/// `registration_opens`, `status`, `pinned`, and `created_at` are
+/// guaranteed on both endpoints.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 #[allow(clippy::struct_excessive_bools)] // mirrors server payload 1:1
 pub struct Tournament {
+    /// Mongo `_id`; only emitted on details, omitted on list rows.
     #[serde(default, rename = "_id")]
     pub id: Option<String>,
     pub tournament_id: String,
     pub registration_opens: i64,
     pub start_time: i64,
-    #[serde(default)]
-    pub preset: Option<String>,
-    pub prize_amount: f64,
-    pub prize_currency: String,
     pub name: String,
-    #[serde(default)]
-    pub description: Option<String>,
+    pub description: String,
     pub images: TournamentImages,
     pub colors: TournamentColors,
     pub slots: u32,
-    #[serde(default)]
     pub pinned: bool,
+    pub prize_amount: f64,
+    pub prize_currency: String,
+    pub status: String,
+    pub created_at: DateTime<Utc>,
+
+    // ----- Fields exclusive to /tournament/details/{id} -------------
+    #[serde(default)]
+    pub preset: Option<String>,
     #[serde(default)]
     pub test: bool,
     #[serde(default)]
@@ -171,9 +224,7 @@ pub struct Tournament {
     #[serde(default)]
     pub user_infos: Vec<TournamentUserInfo>,
     #[serde(default)]
-    pub matchups_by_round: Vec<serde_json::Value>,
-    #[serde(default)]
-    pub status: Option<String>,
+    pub matchups_by_round: Vec<Vec<MatchupEntry>>,
     #[serde(default)]
     pub ruleset: Option<TournamentRuleset>,
     #[serde(default)]
@@ -184,8 +235,6 @@ pub struct Tournament {
     pub payout_splits: Vec<PayoutSplit>,
     #[serde(default)]
     pub payout_skipped_players: Vec<String>,
-    #[serde(default)]
-    pub created_at: Option<DateTime<Utc>>,
     #[serde(default)]
     pub updated_at: Option<DateTime<Utc>>,
     #[serde(default)]
@@ -201,13 +250,15 @@ pub struct Tournament {
     #[serde(default)]
     pub payout_completed_at: Option<i64>,
     #[serde(default)]
-    pub user_infos_count: Option<i64>,
-    #[serde(default)]
-    pub confirmed_entries_count: Option<i64>,
-    #[serde(default)]
     pub is_free_tournament: bool,
     #[serde(default)]
     pub hidden: bool,
+
+    // ----- Fields exclusive to /tournament/list (row aggregates) -----
+    #[serde(default)]
+    pub user_infos_count: Option<i64>,
+    #[serde(default)]
+    pub confirmed_entries_count: Option<i64>,
 }
 
 /// One player's per-game timing.
@@ -288,6 +339,7 @@ mod tests {
             "prizeAmount": 0.5,
             "prizeCurrency": "ETH",
             "name": "Cup",
+            "description": "A cup",
             "images": {},
             "colors": {
                 "primary": "#fff",
@@ -295,6 +347,9 @@ mod tests {
                 "gradient": "linear-gradient(...)",
             },
             "slots": 16,
+            "pinned": false,
+            "status": "scheduled",
+            "createdAt": "2026-05-13T12:00:00Z",
         })
     }
 

@@ -16,19 +16,16 @@ pub struct Helmet {
 
 /// Compact player identity returned inline on match-history rows and
 /// similar two-player contexts.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Default)]
+///
+/// Every field is required by the corpus (120/120 white/black side records
+/// across 60 captured matches).
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct PlayerInfo {
     pub address: String,
-
-    #[serde(default)]
-    pub username: Option<String>,
-
-    #[serde(default)]
-    pub username_display: Option<String>,
-
-    #[serde(default)]
-    pub helmet: Option<Helmet>,
+    pub username: String,
+    pub username_display: String,
+    pub helmet: Helmet,
 }
 
 /// Marker the server attaches when it wants the client to prompt the
@@ -112,20 +109,18 @@ mod tests {
         });
         let p: PlayerInfo = serde_json::from_value(raw).unwrap();
         assert_eq!(p.address, "0xabc");
-        assert_eq!(p.username.as_deref(), Some("alice"));
-        assert_eq!(p.username_display.as_deref(), Some("Alice"));
-        assert_eq!(p.helmet.unwrap().key, "knightmare");
+        assert_eq!(p.username, "alice");
+        assert_eq!(p.username_display, "Alice");
+        assert_eq!(p.helmet.key, "knightmare");
     }
 
     #[test]
-    fn player_info_minimal() {
-        // Only `address` present — optional fields default to None.
+    fn player_info_missing_required_field_errors() {
+        // PlayerInfo's required fields are pinned by the corpus audit; any
+        // missing field should fail to decode (no silent defaults).
         let raw = json!({"address": "0xdef"});
-        let p: PlayerInfo = serde_json::from_value(raw).unwrap();
-        assert_eq!(p.address, "0xdef");
-        assert!(p.username.is_none());
-        assert!(p.username_display.is_none());
-        assert!(p.helmet.is_none());
+        let res: Result<PlayerInfo, _> = serde_json::from_value(raw);
+        assert!(res.is_err());
     }
 
     #[test]

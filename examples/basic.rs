@@ -40,10 +40,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let user = client.users().get(&top.address).send().await?;
     println!(
         "\nTop player profile (typed):\n  {} — rating {:.1}, {} match(es), trophies {}",
-        user.username_display.as_deref().unwrap_or("(unknown)"),
-        user.rating,
-        user.match_count,
-        user.trophies
+        user.username_display, user.rating, user.match_count, user.trophies
     );
 
     // Raw: bypass the typed model and pull out one nested field.
@@ -64,8 +61,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!(
             "  {}  {} vs {}  →  {} ({})",
             m.created_at.format("%Y-%m-%d"),
-            m.white.username_display.as_deref().unwrap_or("?"),
-            m.black.username_display.as_deref().unwrap_or("?"),
+            m.white.username_display,
+            m.black.username_display,
             m.outcome,
             m.result_for_user,
         );
