@@ -4,12 +4,18 @@
 //! Each model derives `Deserialize` (via serde) with `camelCase` aliasing —
 //! field names are `snake_case` in Rust, `camelCase` on the wire.
 
+pub mod auctions;
 pub mod common;
 pub mod game;
 pub mod leaderboard;
 pub mod pieces;
 pub mod user;
 
+pub use auctions::{
+    Auction, AuctionDaySummary, AuctionMetadata, AuctionPieceInfo, CompletedDaySummary,
+    DailyVolume, InstantMintPrice, PastAuction, PastAuctionEntry, PastAuctionsPage, PastDayBucket,
+    Prices, SalesStats, VrgdaPrice,
+};
 pub use common::{Helmet, PlayerInfo, ResponseMeta, SuggestSignup};
 pub use game::{Game, GameEnding, GameResult, RatingChange};
 pub use leaderboard::{
