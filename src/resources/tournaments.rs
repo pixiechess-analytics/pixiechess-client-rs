@@ -16,6 +16,11 @@ impl<'c> TournamentsResource<'c> {
     }
 
     /// `GET /tournament/list`.
+    ///
+    /// `limit` and `offset` are required by the server; the builder
+    /// always sends them. Other knobs (`pinned`, `active`, `dateFilter`,
+    /// `tzOffset`) are honored on the live API. The `sort` query param
+    /// was verified silently ignored and is not exposed.
     #[must_use]
     pub fn list(&self) -> TournamentsListBuilder<'c> {
         TournamentsListBuilder {
@@ -23,7 +28,6 @@ impl<'c> TournamentsResource<'c> {
             limit: 10,
             offset: 0,
             pinned: false,
-            sort: "date".into(),
             date_filter: None,
             tz_offset: None,
             active: None,
@@ -57,7 +61,6 @@ pub struct TournamentsListBuilder<'c> {
     limit: u32,
     offset: u32,
     pinned: bool,
-    sort: String,
     date_filter: Option<String>,
     tz_offset: Option<i32>,
     active: Option<bool>,
@@ -85,13 +88,6 @@ impl TournamentsListBuilder<'_> {
         self
     }
 
-    /// Set `sort` key. Default `"date"`.
-    #[must_use]
-    pub fn sort(mut self, s: impl Into<String>) -> Self {
-        self.sort = s.into();
-        self
-    }
-
     /// Set `dateFilter` (omitted when unset).
     #[must_use]
     pub fn date_filter(mut self, s: impl Into<String>) -> Self {
@@ -99,7 +95,8 @@ impl TournamentsListBuilder<'_> {
         self
     }
 
-    /// Set `tzOffset` minutes (omitted when unset).
+    /// Set `tzOffset` minutes (omitted when unset). Only meaningful in
+    /// combination with [`Self::date_filter`].
     #[must_use]
     pub fn tz_offset(mut self, n: i32) -> Self {
         self.tz_offset = Some(n);
@@ -118,7 +115,6 @@ impl TournamentsListBuilder<'_> {
             ("limit", self.limit.to_string()),
             ("offset", self.offset.to_string()),
             ("pinned", self.pinned.to_string()),
-            ("sort", self.sort.clone()),
         ];
         if let Some(d) = &self.date_filter {
             p.push(("dateFilter", d.clone()));
@@ -249,7 +245,6 @@ mod tests {
             .and(query_param("limit", "10"))
             .and(query_param("offset", "0"))
             .and(query_param("pinned", "false"))
-            .and(query_param("sort", "date"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "totalCount": 0,
                 "tournaments": [],

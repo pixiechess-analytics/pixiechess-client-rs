@@ -57,10 +57,10 @@ Every endpoint goes through a builder that exposes two terminal methods. Pick th
 
 ```rust
 // Typed: parses into the model.
-let lb = client.leaderboard().get().page(2).page_size(25).send().await?;
+let history = client.users().match_history("0xabc").page(2).limit(25).send().await?;
 
 // Raw: returns serde_json::Value (skips typed deserialization).
-let raw = client.leaderboard().get().page(2).page_size(25).raw().await?;
+let raw = client.users().match_history("0xabc").page(2).limit(25).raw().await?;
 ```
 
 One-shot endpoints follow the same shape:
@@ -75,12 +75,20 @@ Some paged endpoints additionally expose an `iter()` / `iter_*()` builder that r
 ```rust
 use futures::StreamExt;
 
-let mut s = client.leaderboard().iter().page_size(25).send();
+let mut s = client.leaderboard().iter().send();
 while let Some(entry) = s.next().await {
     let entry = entry?;
     // …
 }
 ```
+
+## Behavior pinning (no-op params)
+
+Every advertised query param is verified against the live API and pinned by an effectiveness test in `tests/live.rs`. Params that the server *accepts but silently ignores* are dropped from the public builder rather than deprecated — advertising a no-op knob is misleading.
+
+Confirmed Tier-1 (silently ignored, not exposed): `/leaderboard?pageSize`, `/tournament/list?sort`, `/live-feed?since`, `/live-feed?type`.
+
+Run `python3 tools/audit_corpus.py` to inspect the per-field stats that drive these decisions.
 
 ## Shape-drift regression test
 

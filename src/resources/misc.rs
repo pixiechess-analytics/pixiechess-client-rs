@@ -45,8 +45,6 @@ impl<'c> MiscResource<'c> {
     pub fn live_feed(&self) -> LiveFeedBuilder<'c> {
         LiveFeedBuilder {
             http: self.http,
-            since: None,
-            type_: None,
             limit: None,
         }
     }
@@ -123,28 +121,15 @@ impl VaultBalanceBuilder<'_> {
 }
 
 /// Builder for [`MiscResource::live_feed`].
+///
+/// `since` and `type` query params were verified silently ignored on
+/// the live API and are not exposed; only `limit` is.
 pub struct LiveFeedBuilder<'c> {
     http: &'c HttpClient,
-    since: Option<String>,
-    type_: Option<String>,
     limit: Option<u32>,
 }
 
 impl LiveFeedBuilder<'_> {
-    /// Set `since` (ISO-8601 datetime string).
-    #[must_use]
-    pub fn since(mut self, since: impl Into<String>) -> Self {
-        self.since = Some(since.into());
-        self
-    }
-
-    /// Set `type` filter.
-    #[must_use]
-    pub fn event_type(mut self, t: impl Into<String>) -> Self {
-        self.type_ = Some(t.into());
-        self
-    }
-
     /// Set `limit`.
     #[must_use]
     pub fn limit(mut self, n: u32) -> Self {
@@ -154,12 +139,6 @@ impl LiveFeedBuilder<'_> {
 
     fn params(&self) -> Vec<(&'static str, String)> {
         let mut p = Vec::new();
-        if let Some(s) = &self.since {
-            p.push(("since", s.clone()));
-        }
-        if let Some(t) = &self.type_ {
-            p.push(("type", t.clone()));
-        }
         if let Some(n) = self.limit {
             p.push(("limit", n.to_string()));
         }
@@ -244,12 +223,10 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn live_feed_passes_all_filters() {
+    async fn live_feed_passes_limit() {
         let server = MockServer::start().await;
         Mock::given(method("GET"))
             .and(path("/live-feed"))
-            .and(query_param("since", "2026-05-12T00:00:00Z"))
-            .and(query_param("type", "game_finished"))
             .and(query_param("limit", "5"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!([
                 {
@@ -265,15 +242,7 @@ mod tests {
             .base_url(server.uri())
             .build()
             .unwrap();
-        let events = client
-            .misc()
-            .live_feed()
-            .since("2026-05-12T00:00:00Z")
-            .event_type("game_finished")
-            .limit(5)
-            .send()
-            .await
-            .unwrap();
+        let events = client.misc().live_feed().limit(5).send().await.unwrap();
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].id, "e1");
     }

@@ -25,12 +25,16 @@ impl<'c> LeaderboardResource<'c> {
     }
 
     /// Fetch one page of the rating leaderboard.
+    ///
+    /// The page size is server-pinned at 15 and not configurable — the
+    /// `pageSize` / `limit` query params were verified silently ignored
+    /// in the live-API audit (see `tools/audit_corpus.py` + lib docs on
+    /// the behavior-pinning policy).
     #[must_use]
     pub fn get(&self) -> LeaderboardGetBuilder<'c> {
         LeaderboardGetBuilder {
             http: self.http,
             page: 1,
-            page_size: None,
         }
     }
 
@@ -40,10 +44,7 @@ impl<'c> LeaderboardResource<'c> {
     #[must_use]
     #[allow(clippy::should_implement_trait, clippy::iter_not_returning_iterator)]
     pub fn iter(&self) -> LeaderboardIterBuilder<'c> {
-        LeaderboardIterBuilder {
-            http: self.http,
-            page_size: None,
-        }
+        LeaderboardIterBuilder { http: self.http }
     }
 
     /// Fetch one page of the points leaderboard.
@@ -62,21 +63,12 @@ impl<'c> LeaderboardResource<'c> {
     }
 }
 
-fn lb_params(page: u32, page_size: Option<u32>) -> Vec<(&'static str, String)> {
-    let mut params = vec![("page", page.to_string())];
-    if let Some(ps) = page_size {
-        params.push(("pageSize", ps.to_string()));
-    }
-    params
-}
-
 // `GET /leaderboard` ---------------------------------------------------
 
 /// Builder for [`LeaderboardResource::get`].
 pub struct LeaderboardGetBuilder<'c> {
     http: &'c HttpClient,
     page: u32,
-    page_size: Option<u32>,
 }
 
 impl LeaderboardGetBuilder<'_> {
@@ -87,14 +79,6 @@ impl LeaderboardGetBuilder<'_> {
         self
     }
 
-    /// Set the page size. Omitted from the query when not set, letting
-    /// the server use its own default.
-    #[must_use]
-    pub fn page_size(mut self, n: u32) -> Self {
-        self.page_size = Some(n);
-        self
-    }
-
     /// Fetch the page.
     ///
     /// # Errors
@@ -102,7 +86,7 @@ impl LeaderboardGetBuilder<'_> {
     /// Returns an [`crate::Error`] on HTTP failure or deserialization
     /// failure.
     pub async fn send(self) -> Result<LeaderboardPage> {
-        let params = lb_params(self.page, self.page_size);
+        let params = [("page", self.page.to_string())];
         self.http.get_with_params("/leaderboard", &params).await
     }
 
@@ -112,7 +96,7 @@ impl LeaderboardGetBuilder<'_> {
     ///
     /// Returns an [`crate::Error`] on HTTP failure.
     pub async fn raw(self) -> Result<serde_json::Value> {
-        let params = lb_params(self.page, self.page_size);
+        let params = [("page", self.page.to_string())];
         self.http.get_with_params("/leaderboard", &params).await
     }
 }
@@ -121,26 +105,17 @@ impl LeaderboardGetBuilder<'_> {
 /// [`Stream`] over every entry across all pages.
 pub struct LeaderboardIterBuilder<'c> {
     http: &'c HttpClient,
-    page_size: Option<u32>,
 }
 
 impl LeaderboardIterBuilder<'_> {
-    /// Set the per-page batch size used internally while iterating.
-    #[must_use]
-    pub fn page_size(mut self, n: u32) -> Self {
-        self.page_size = Some(n);
-        self
-    }
-
     /// Begin streaming entries. Short-circuits on `totalPages`.
     #[must_use]
     pub fn send(self) -> Pin<Box<dyn Stream<Item = Result<LeaderboardEntry>> + Send>> {
         let http = self.http.clone();
-        let page_size = self.page_size;
         page_stream(
             move |page| {
                 let http = http.clone();
-                let params = lb_params(page, page_size);
+                let params = [("page", page.to_string())];
                 async move { http.get_with_params("/leaderboard", &params).await }
             },
             |data| {
@@ -264,12 +239,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn leaderboard_get_attaches_page_and_page_size_params() {
+    async fn leaderboard_get_attaches_page_param() {
         let server = MockServer::start().await;
         Mock::given(method("GET"))
             .and(path("/leaderboard"))
             .and(query_param("page", "2"))
-            .and(query_param("pageSize", "25"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "entries": [entry(26)],
                 "totalCount": 100,
@@ -284,20 +258,13 @@ mod tests {
             .base_url(server.uri())
             .build()
             .unwrap();
-        let page = client
-            .leaderboard()
-            .get()
-            .page(2)
-            .page_size(25)
-            .send()
-            .await
-            .unwrap();
+        let page = client.leaderboard().get().page(2).send().await.unwrap();
         assert_eq!(page.page, 2);
         assert_eq!(page.entries.len(), 1);
     }
 
     #[tokio::test]
-    async fn leaderboard_get_omits_page_size_when_unset() {
+    async fn leaderboard_get_default_page_is_1() {
         let server = MockServer::start().await;
         Mock::given(method("GET"))
             .and(path("/leaderboard"))
