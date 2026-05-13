@@ -5,4 +5,5 @@
 //! `send()` terminal returns the typed model; `raw()` returns a
 //! [`serde_json::Value`] for callers that want to bypass deserialization.
 
+pub mod games;
 pub mod users;
