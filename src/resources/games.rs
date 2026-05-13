@@ -126,6 +126,8 @@ mod tests {
                 "_id": "x",
                 "gameId": "g1",
                 "board": {"moves": []},
+                "createdAt": "2026-05-13T12:00:00Z",
+                "updatedAt": "2026-05-13T12:00:00Z",
                 "rated": true,
             })))
             .mount(&server)

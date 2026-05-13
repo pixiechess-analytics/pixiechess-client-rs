@@ -35,56 +35,54 @@ pub struct PieceMetadata {
     pub attributes: Vec<PieceAttribute>,
 }
 
-/// Tournament context attached to a burned piece (when the piece was
-/// burned through a tournament redemption). All fields nullable per the
-/// nullability fixes from the recent Python sync.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Default)]
+/// Tournament context attached to a burned piece. `name` and `color`
+/// are always present; `tournament_id` is absent on burns not tied to
+/// a tournament redemption (~32% of burned rows in the corpus).
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct BurnedTournament {
     #[serde(default)]
     pub tournament_id: Option<String>,
-    #[serde(default)]
-    pub name: Option<String>,
-    #[serde(default)]
-    pub color: Option<String>,
+    pub name: String,
+    pub color: String,
 }
 
 /// Burn record attached to a piece. `time` is the Unix-ish timestamp
-/// of the burn; `tournament` is set when the burn came from a
-/// tournament redemption.
+/// of the burn; `tournament` is always present in the corpus for burned
+/// pieces (server emits a stub block even when not tournament-linked).
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct BurnedInfo {
     pub time: i64,
-    #[serde(default)]
-    pub tournament: Option<BurnedTournament>,
+    pub tournament: BurnedTournament,
 }
 
-/// A single piece (NFT). Owned pieces and burned pieces share this shape;
-/// burned pieces carry the optional `burned` block.
+/// A single piece (NFT). Shared shape for both `/pieces/{address}` (live
+/// pieces, carry `count`) and `/burned-pieces/{address}` (burned pieces,
+/// carry `burned` + `original_asset_id`). Fields that appear in *both*
+/// payloads are required; per-endpoint extras stay optional.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Piece {
     #[serde(rename = "_id")]
     pub id: String,
-    #[serde(default)]
-    pub collection_address: Option<String>,
-    #[serde(default)]
-    pub token_id: Option<i64>,
-    #[serde(default)]
-    pub owner: Option<String>,
-    #[serde(default)]
-    pub metadata: Option<PieceMetadata>,
-    #[serde(default)]
-    pub last_transfer_block_number: Option<i64>,
-    #[serde(default)]
-    pub created_at: Option<DateTime<Utc>>,
-    #[serde(default)]
-    pub updated_at: Option<DateTime<Utc>>,
+    pub collection_address: String,
+    pub token_id: i64,
+    pub owner: String,
+    pub metadata: PieceMetadata,
+    pub last_transfer_block_number: i64,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+
+    /// Live pieces (`/pieces/{address}` with `grouped=true`) carry the
+    /// number of duplicate tokens collapsed into this row. Absent on
+    /// `/burned-pieces/{address}`.
     #[serde(default)]
     pub count: Option<u32>,
+    /// Set on `/burned-pieces/{address}`; absent on live pieces.
     #[serde(default)]
     pub burned: Option<BurnedInfo>,
+    /// Set on `/burned-pieces/{address}`; absent on live pieces.
     #[serde(default)]
     pub original_asset_id: Option<String>,
 }
@@ -106,18 +104,8 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    #[test]
-    fn piece_minimal_only_id() {
-        let raw = json!({"_id": "abc"});
-        let p: Piece = serde_json::from_value(raw).unwrap();
-        assert_eq!(p.id, "abc");
-        assert!(p.metadata.is_none());
-        assert!(p.burned.is_none());
-    }
-
-    #[test]
-    fn piece_with_metadata_and_attributes() {
-        let raw = json!({
+    fn live_piece_payload() -> serde_json::Value {
+        json!({
             "_id": "abc",
             "collectionAddress": "0xc0ll",
             "tokenId": 42,
@@ -131,20 +119,35 @@ mod tests {
                     {"trait_type": "power", "value": 12.5},
                 ],
             },
+            "lastTransferBlockNumber": 12345,
+            "createdAt": "2026-05-13T12:00:00Z",
+            "updatedAt": "2026-05-13T12:00:00Z",
             "count": 3,
-        });
-        let p: Piece = serde_json::from_value(raw).unwrap();
-        assert_eq!(p.token_id, Some(42));
-        let m = p.metadata.unwrap();
-        assert_eq!(m.attributes.len(), 3);
-        assert_eq!(m.attributes[1].value, json!(7));
-        assert_eq!(m.attributes[2].value, json!(12.5));
+        })
     }
 
     #[test]
-    fn piece_with_burned_info() {
+    fn piece_live_with_metadata_and_attributes() {
+        let p: Piece = serde_json::from_value(live_piece_payload()).unwrap();
+        assert_eq!(p.token_id, 42);
+        assert_eq!(p.count, Some(3));
+        assert!(p.burned.is_none());
+        assert_eq!(p.metadata.attributes.len(), 3);
+        assert_eq!(p.metadata.attributes[1].value, json!(7));
+    }
+
+    #[test]
+    fn piece_burned_with_tournament_metadata() {
         let raw = json!({
             "_id": "abc",
+            "collectionAddress": "0xc0ll",
+            "tokenId": 42,
+            "owner": "0x000",
+            "metadata": {"attributes": []},
+            "lastTransferBlockNumber": 12345,
+            "createdAt": "2026-05-13T12:00:00Z",
+            "updatedAt": "2026-05-13T12:00:00Z",
+            "originalAssetId": "original-asset",
             "burned": {
                 "time": 1_700_000_000,
                 "tournament": {
@@ -157,34 +160,36 @@ mod tests {
         let p: Piece = serde_json::from_value(raw).unwrap();
         let b = p.burned.unwrap();
         assert_eq!(b.time, 1_700_000_000);
+        assert_eq!(b.tournament.name, "Daily");
         assert_eq!(
-            b.tournament.unwrap().tournament_id.as_deref(),
+            b.tournament.tournament_id.as_deref(),
             Some("tournament_175_xyz")
         );
+        assert_eq!(p.original_asset_id.as_deref(), Some("original-asset"));
     }
 
     #[test]
-    fn piece_burned_with_null_tournament_fields() {
-        // The Python sync established that burned.tournament's fields
-        // are all nullable; verify the Rust side matches.
-        let raw = json!({
-            "_id": "abc",
-            "burned": {
-                "time": 1,
-                "tournament": {},
-            },
-        });
-        let p: Piece = serde_json::from_value(raw).unwrap();
-        let t = p.burned.unwrap().tournament.unwrap();
+    fn burned_tournament_accepts_missing_tournament_id() {
+        // Per-corpus: ~32% of burned rows have no tournamentId (the burn
+        // wasn't tied to a tournament redemption). name + color stay
+        // required.
+        let raw = json!({"name": "Daily", "color": "white"});
+        let t: BurnedTournament = serde_json::from_value(raw).unwrap();
         assert!(t.tournament_id.is_none());
-        assert!(t.name.is_none());
-        assert!(t.color.is_none());
+    }
+
+    #[test]
+    fn piece_missing_required_field_errors() {
+        let mut raw = live_piece_payload();
+        raw.as_object_mut().unwrap().remove("collectionAddress");
+        let res: Result<Piece, _> = serde_json::from_value(raw);
+        assert!(res.is_err());
     }
 
     #[test]
     fn pieces_page_decodes_with_meta_envelope() {
         let raw = json!({
-            "pieces": [{"_id": "p1"}],
+            "pieces": [live_piece_payload()],
             "totalPages": 3,
             "currentPage": 1,
             "totalCount": 25,

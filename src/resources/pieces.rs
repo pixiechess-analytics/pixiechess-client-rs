@@ -301,7 +301,35 @@ mod tests {
     use crate::PixieChessClient;
 
     fn piece(id: &str) -> serde_json::Value {
-        json!({"_id": id})
+        json!({
+            "_id": id,
+            "collectionAddress": "0xc0ll",
+            "tokenId": 1,
+            "owner": "0xowner",
+            "metadata": {"attributes": []},
+            "lastTransferBlockNumber": 1,
+            "createdAt": "2026-05-13T12:00:00Z",
+            "updatedAt": "2026-05-13T12:00:00Z",
+        })
+    }
+
+    #[allow(dead_code)] // referenced by a future burned-iter test
+    fn burned_piece(id: &str) -> serde_json::Value {
+        json!({
+            "_id": id,
+            "collectionAddress": "0xc0ll",
+            "tokenId": 1,
+            "owner": "0xowner",
+            "metadata": {"attributes": []},
+            "lastTransferBlockNumber": 1,
+            "createdAt": "2026-05-13T12:00:00Z",
+            "updatedAt": "2026-05-13T12:00:00Z",
+            "originalAssetId": "orig-1",
+            "burned": {
+                "time": 1,
+                "tournament": {"name": "Daily", "color": "white"},
+            },
+        })
     }
 
     #[tokio::test]

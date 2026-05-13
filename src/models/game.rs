@@ -32,9 +32,16 @@ pub struct GameResult {
 
 /// Single-game state, returned by `GET /game/{gameId}`.
 ///
-/// `board` and `players` are open-shape — they're returned as
-/// `serde_json::Value` since the server may add fields and the client
-/// shouldn't fail to deserialize when it does.
+/// `board` and `players` are intentionally kept as raw
+/// [`serde_json::Value`]: `board` is a full chess game-state document
+/// (move history, FEN, draw offers, piece-mapping, …) that would explode
+/// the model and bind the client tightly to upstream gameplay-engine
+/// internals, and `players` carries per-side runtime state whose schema
+/// genuinely varies between in-progress and finished games. The corpus
+/// captures only two examples; that's too few to confidently lock down
+/// the fields that vary by game state (`status`, `result`, `finished_at`,
+/// `tournament_id`, etc.), so those stay `Option<_>` until we have richer
+/// observation data.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Game {
@@ -42,6 +49,8 @@ pub struct Game {
     pub id: String,
     pub game_id: String,
     pub board: serde_json::Value,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 
     #[serde(default)]
     pub players: Option<Vec<serde_json::Value>>,
@@ -71,10 +80,6 @@ pub struct Game {
     pub finished_at: Option<i64>,
     #[serde(default)]
     pub rematch_declined: bool,
-    #[serde(default)]
-    pub created_at: Option<DateTime<Utc>>,
-    #[serde(default)]
-    pub updated_at: Option<DateTime<Utc>>,
 }
 
 /// Response from `GET /game/{gameId}/rating/{address}` — the rating
@@ -102,6 +107,8 @@ mod tests {
             "_id": "507f1f77bcf86cd799439011",
             "gameId": "game_1_abc",
             "board": {},
+            "createdAt": "2026-05-13T12:00:00Z",
+            "updatedAt": "2026-05-13T12:00:00Z",
         });
         let g: Game = serde_json::from_value(raw).unwrap();
         assert_eq!(g.id, "507f1f77bcf86cd799439011");
@@ -117,6 +124,8 @@ mod tests {
             "_id": "abc",
             "gameId": "tournament_175_xyz_r7_p0_rm0",
             "board": {"moves": [], "fen": "..."},
+            "createdAt": "2026-05-13T12:00:00Z",
+            "updatedAt": "2026-05-13T12:00:00Z",
             "playerIds": {"white": "did:privy:foo", "black": "did:privy:bar"},
             "playerStatuses": {"white": true, "black": true},
             "tournamentId": "tournament_175_xyz",

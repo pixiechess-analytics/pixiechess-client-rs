@@ -227,6 +227,7 @@ mod tests {
             "prizeAmount": 0.5,
             "prizeCurrency": "ETH",
             "name": "Cup",
+            "description": "A cup",
             "images": {},
             "colors": {
                 "primary": "#fff",
@@ -234,6 +235,9 @@ mod tests {
                 "gradient": "linear-gradient(...)",
             },
             "slots": 16,
+            "pinned": false,
+            "status": "scheduled",
+            "createdAt": "2026-05-13T12:00:00Z",
         })
     }
 

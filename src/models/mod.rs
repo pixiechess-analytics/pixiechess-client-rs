@@ -21,14 +21,15 @@ pub use auctions::{
 pub use common::{Helmet, PlayerInfo, ResponseMeta, SuggestSignup};
 pub use game::{Game, GameEnding, GameResult, RatingChange};
 pub use leaderboard::{
-    LeaderboardEntry, LeaderboardPage, LeaderboardStats, PointsLeaderboardEntry,
-    PointsLeaderboardPage,
+    LeaderboardEntry, LeaderboardPage, LeaderboardStats, PointsLeaderboardCurrentUser,
+    PointsLeaderboardEntry, PointsLeaderboardPage,
 };
 pub use misc::{EthUsdPrice, LiveFeedEvent, PublicConfig};
 pub use pieces::{BurnedInfo, BurnedTournament, Piece, PieceAttribute, PieceMetadata, PiecesPage};
 pub use tournaments::{
-    BurnRuleset, GameTiming, GameTimingPlayer, GameplayRuleset, NotificationStatus, PayoutSplit,
-    SubstitutionRule, Tournament, TournamentColors, TournamentDetails, TournamentImages,
-    TournamentList, TournamentRuleset, TournamentUserInfo, WaitlistEntry,
+    BurnRuleset, GameTiming, GameTimingPlayer, GameplayRuleset, MatchupEntry, MatchupSource,
+    NotificationStatus, PayoutSplit, SourceMatches, SubstitutionRule, Tournament, TournamentColors,
+    TournamentDetails, TournamentImages, TournamentList, TournamentRuleset, TournamentUserInfo,
+    WaitlistEntry,
 };
 pub use user::{ColorRecord, MatchHistoryEntry, MatchHistoryPage, MatchTiming, User};

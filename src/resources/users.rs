@@ -242,8 +242,36 @@ mod tests {
                 "_id": "507f1f77bcf86cd799439011",
                 "address": "0xabc",
                 "username": "alice",
+                "usernameDisplay": "Alice",
+                "walletClientType": "metamask",
+                "helmet": {"key": "knightmare", "color": "red"},
+                "lastLogin": "2026-05-13T12:34:56Z",
+                "winRate": 50,
+                "matchCount": 10,
+                "wins": 5,
+                "losses": 4,
+                "draws": 1,
+                "casualGames": 2,
+                "streak": 0,
+                "colorRecord": {},
+                "trophies": 0,
                 "rating": 1500.0,
+                "rd": 50.0,
+                "isProvisional": false,
+                "peakRating": 1600.0,
+                "ratedGamesPlayed": 8,
+                "genuineGamesPlayed": 8,
+                "points": 100,
             }
+        })
+    }
+
+    fn player_info_json(addr: &str, name: &str) -> serde_json::Value {
+        json!({
+            "address": addr,
+            "username": name,
+            "usernameDisplay": name,
+            "helmet": {"key": "knightmare", "color": "red"},
         })
     }
 
@@ -261,7 +289,7 @@ mod tests {
             .build()
             .unwrap();
         let user = client.users().get("alice").send().await.unwrap();
-        assert_eq!(user.username.as_deref(), Some("alice"));
+        assert_eq!(user.username, "alice");
         assert_eq!(user.address, "0xabc");
     }
 
@@ -292,6 +320,8 @@ mod tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "matches": [],
                 "totalPages": 0,
+                "currentPage": 2,
+                "totalCount": 0,
             })))
             .mount(&server)
             .await;
@@ -309,7 +339,7 @@ mod tests {
             .await
             .unwrap();
         assert!(page.matches.is_empty());
-        assert_eq!(page.total_pages, Some(0));
+        assert_eq!(page.total_pages, 0);
     }
 
     #[tokio::test]
@@ -319,7 +349,12 @@ mod tests {
             .and(path("/user/match-history/0xabc"))
             .and(query_param("page", "1"))
             .and(query_param("limit", "15"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(json!({"matches": []})))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "matches": [],
+                "totalPages": 0,
+                "currentPage": 1,
+                "totalCount": 0,
+            })))
             .mount(&server)
             .await;
 
@@ -340,8 +375,9 @@ mod tests {
             json!({
                 "gameId": game,
                 "createdAt": "2026-05-13T12:00:00Z",
-                "white": {"address": "0xaaa"},
-                "black": {"address": "0xbbb"},
+                "white": player_info_json("0xaaa", "alice"),
+                "black": player_info_json("0xbbb", "bob"),
+                "winner": "white",
                 "resultForUser": "win",
                 "outcome": "checkmate",
                 "rated": true,
@@ -353,13 +389,21 @@ mod tests {
             .and(query_param("page", "1"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
                 "matches": [entry("g1"), entry("g2")],
+                "totalPages": 2,
+                "currentPage": 1,
+                "totalCount": 4,
             })))
             .mount(&server)
             .await;
         Mock::given(method("GET"))
             .and(path("/user/match-history/0xabc"))
             .and(query_param("page", "2"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(json!({"matches": []})))
+            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+                "matches": [],
+                "totalPages": 2,
+                "currentPage": 2,
+                "totalCount": 4,
+            })))
             .mount(&server)
             .await;
 

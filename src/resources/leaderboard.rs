@@ -243,14 +243,24 @@ mod tests {
             "address": format!("0x{rank:040x}"),
             "username": format!("u{rank}"),
             "usernameDisplay": format!("U{rank}"),
+            "helmet": {"key": "knightmare", "color": "red"},
             "rating": 1500.0,
             "isProvisional": false,
             "gamesPlayed": 10,
+            "genuineGamesPlayed": 8,
             "wins": 5,
             "streak": 0,
             "isOnline": false,
             "isInGame": false,
         })
+    }
+
+    fn stats_payload() -> serde_json::Value {
+        json!({"totalRankedPlayers": 100, "gamesToday": 10, "activeNow": 5})
+    }
+
+    fn points_current_user_payload() -> serde_json::Value {
+        json!({"rank": 0, "rankChange": 0, "totalPoints": 0, "today": 0, "thisWeek": 0})
     }
 
     #[tokio::test]
@@ -265,6 +275,7 @@ mod tests {
                 "totalCount": 100,
                 "page": 2,
                 "totalPages": 4,
+                "stats": stats_payload(),
             })))
             .mount(&server)
             .await;
@@ -296,6 +307,7 @@ mod tests {
                 "totalCount": 0,
                 "page": 1,
                 "totalPages": 0,
+                "stats": stats_payload(),
             })))
             .mount(&server)
             .await;
@@ -318,6 +330,7 @@ mod tests {
                 "totalCount": 4,
                 "page": 1,
                 "totalPages": 2,
+                "stats": stats_payload(),
             })))
             .mount(&server)
             .await;
@@ -329,6 +342,7 @@ mod tests {
                 "totalCount": 4,
                 "page": 2,
                 "totalPages": 2,
+                "stats": stats_payload(),
             })))
             .mount(&server)
             .await;
@@ -354,6 +368,7 @@ mod tests {
                 "totalCount": 0,
                 "page": 3,
                 "totalPages": 0,
+                "currentUser": points_current_user_payload(),
             })))
             .mount(&server)
             .await;
@@ -378,15 +393,19 @@ mod tests {
                     "address": "0xabc",
                     "username": "alice",
                     "usernameDisplay": "Alice",
+                    "helmet": {"key": "knightmare", "color": "red"},
                     "totalPoints": 100,
                     "today": 10,
                     "thisWeek": 50,
                     "rankChange": 0,
                     "isOnline": true,
+                    "rating": 1500.0,
+                    "genuineGamesPlayed": 5,
                 }],
                 "totalCount": 1,
                 "page": 1,
                 "totalPages": 1,
+                "currentUser": points_current_user_payload(),
             })))
             .mount(&server)
             .await;
