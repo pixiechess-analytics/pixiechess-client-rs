@@ -2,6 +2,7 @@
 
 use crate::Result;
 use crate::http::{DEFAULT_BASE_URL, HttpClient};
+use crate::resources::auctions::AuctionsResource;
 use crate::resources::games::GamesResource;
 use crate::resources::leaderboard::LeaderboardResource;
 use crate::resources::pieces::PiecesResource;
@@ -63,6 +64,12 @@ impl PixieChessClient {
     #[must_use]
     pub fn pieces(&self) -> PiecesResource<'_> {
         PiecesResource::new(&self.http)
+    }
+
+    /// Auction endpoints (`GET /auction/{address}`, `GET /auctions/*`, `GET /prices`).
+    #[must_use]
+    pub fn auctions(&self) -> AuctionsResource<'_> {
+        AuctionsResource::new(&self.http)
     }
 }
 
