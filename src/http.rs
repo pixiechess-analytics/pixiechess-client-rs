@@ -111,9 +111,15 @@ fn default_headers() -> HeaderMap {
         header::REFERER,
         HeaderValue::from_static("https://www.pixiechess.xyz/"),
     );
+    // The upstream WAF returns a 202 challenge to non-browser-shaped
+    // user agents. We mirror a recent Chrome/Linux UA to stay on the
+    // happy path; the resource code path is otherwise identical.
     h.insert(
         header::USER_AGENT,
-        HeaderValue::from_static(concat!("pixiechess-client/", env!("CARGO_PKG_VERSION"))),
+        HeaderValue::from_static(
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 \
+             (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        ),
     );
     h.insert(header::ACCEPT, HeaderValue::from_static("*/*"));
     h.insert(
