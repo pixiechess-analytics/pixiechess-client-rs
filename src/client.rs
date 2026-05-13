@@ -32,7 +32,7 @@ impl PixieChessClient {
     /// constructed (e.g. TLS initialization failure).
     pub fn new() -> Result<Self> {
         Ok(Self {
-            http: HttpClient::new(DEFAULT_BASE_URL)?,
+            http: HttpClient::new(DEFAULT_BASE_URL, None)?,
         })
     }
 
@@ -96,11 +96,12 @@ impl PixieChessClient {
     }
 }
 
-/// Builder for [`PixieChessClient`]. Configures the base URL (and, in
-/// future, custom timeouts / retry policies).
+/// Builder for [`PixieChessClient`]. Configures the base URL and the
+/// outbound `User-Agent`.
 #[derive(Debug, Default)]
 pub struct PixieChessClientBuilder {
     base_url: Option<String>,
+    user_agent: Option<String>,
 }
 
 impl PixieChessClientBuilder {
@@ -112,16 +113,38 @@ impl PixieChessClientBuilder {
         self
     }
 
+    /// Override the `User-Agent` header (replaces the default Chrome UA).
+    ///
+    /// The upstream WAF returns a `202` empty-body challenge to non-browser
+    /// user agents, so the default mirrors a recent Chrome build (see
+    /// [`crate::DEFAULT_USER_AGENT`]). If you need to identify your own
+    /// integration without losing WAF compatibility, suffix the default:
+    ///
+    /// ```no_run
+    /// use pixiechess_client::{DEFAULT_USER_AGENT, PixieChessClient};
+    ///
+    /// let client = PixieChessClient::builder()
+    ///     .user_agent(format!("{DEFAULT_USER_AGENT} my-app/1.0"))
+    ///     .build()
+    ///     .unwrap();
+    /// ```
+    #[must_use]
+    pub fn user_agent(mut self, ua: impl Into<String>) -> Self {
+        self.user_agent = Some(ua.into());
+        self
+    }
+
     /// Construct the client.
     ///
     /// # Errors
     ///
-    /// Returns an [`crate::Error`] if the base URL is invalid or the
+    /// Returns an [`crate::Error`] if the base URL is invalid, the
+    /// `User-Agent` cannot be parsed as a header value, or the
     /// underlying HTTP client cannot be constructed.
     pub fn build(self) -> Result<PixieChessClient> {
         let url = self.base_url.as_deref().unwrap_or(DEFAULT_BASE_URL);
         Ok(PixieChessClient {
-            http: HttpClient::new(url)?,
+            http: HttpClient::new(url, self.user_agent.as_deref())?,
         })
     }
 }
