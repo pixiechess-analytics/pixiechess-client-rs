@@ -12,3 +12,8 @@
 //! Shape drift between the live API and the typed models is caught by a replay
 //! test in `tests/replay.rs` that walks the corpus produced by
 //! [`pixiechess-har-utils`](https://github.com/pixiechess-analytics/pixiechess-har-utils).
+
+mod error;
+mod http;
+
+pub use error::{Error, Result};
