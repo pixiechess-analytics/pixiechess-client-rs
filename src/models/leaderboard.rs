@@ -16,7 +16,9 @@ pub struct LeaderboardEntry {
     pub address: String,
     pub username: String,
     pub username_display: String,
-    pub helmet: Helmet,
+    /// Absent for users who haven't equipped one.
+    #[serde(default)]
+    pub helmet: Option<Helmet>,
     pub rating: f64,
     pub is_provisional: bool,
     pub games_played: u32,
@@ -65,7 +67,9 @@ pub struct PointsLeaderboardEntry {
     pub address: String,
     pub username: String,
     pub username_display: String,
-    pub helmet: Helmet,
+    /// Absent for users who haven't equipped one.
+    #[serde(default)]
+    pub helmet: Option<Helmet>,
     pub total_points: u64,
     pub today: u64,
     pub this_week: u64,
@@ -148,7 +152,7 @@ mod tests {
         let e: LeaderboardEntry = serde_json::from_value(entry_payload()).unwrap();
         assert_eq!(e.rank, 1);
         assert_eq!(e.username, "alice");
-        assert_eq!(e.helmet.key, "knightmare");
+        assert_eq!(e.helmet.as_ref().unwrap().key, "knightmare");
     }
 
     #[test]
@@ -175,7 +179,7 @@ mod tests {
         let e: PointsLeaderboardEntry = serde_json::from_value(points_entry_payload()).unwrap();
         assert_eq!(e.rank, 7);
         assert_eq!(e.total_points, 5000);
-        assert_eq!(e.helmet.key, "knightmare");
+        assert_eq!(e.helmet.as_ref().unwrap().key, "knightmare");
     }
 
     #[test]
