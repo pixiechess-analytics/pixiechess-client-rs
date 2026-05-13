@@ -13,7 +13,9 @@
 //! test in `tests/replay.rs` that walks the corpus produced by
 //! [`pixiechess-har-utils`](https://github.com/pixiechess-analytics/pixiechess-har-utils).
 
+mod client;
 mod error;
 mod http;
 
+pub use client::{PixieChessClient, PixieChessClientBuilder};
 pub use error::{Error, Result};
