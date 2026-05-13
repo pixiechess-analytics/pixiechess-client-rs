@@ -1,6 +1,4 @@
 //! Tournament-related models.
-//!
-//! Mirrors `pixiechess-client-py-old/src/pixiechess_client/models/tournaments.py`.
 
 use std::collections::HashMap;
 
@@ -40,8 +38,8 @@ pub struct TournamentColors {
 
 /// One registered (or pending-registration) player's snapshot on a tournament.
 ///
-/// `username` is ~98% present (a small number of accounts emit `_id`+helmet
-/// without it). Burn-related fields (`burnInitiatedAt`,
+/// `username` is occasionally absent — a small fraction of accounts emit
+/// `_id` + helmet without it. Burn-related fields (`burnInitiatedAt`,
 /// `pendingBurnTxHash{,es}`, `dropReason`, `droppedAtStart`) appear only on
 /// entries actively going through a burn-and-confirm flow.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -166,8 +164,8 @@ pub struct SourceMatches {
 }
 
 /// One bracket cell in `Tournament.matchups_by_round`. `gameId` is unset
-/// for matchups whose game hasn't been played yet (~14% of captured
-/// matchups); `sourceMatches` is unset for first-round entries.
+/// for matchups whose game hasn't been played yet; `sourceMatches` is
+/// unset for first-round entries.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct MatchupEntry {
@@ -191,10 +189,6 @@ pub struct MatchupEntry {
 /// Used by both `GET /tournament/list` (row projection) and
 /// `GET /tournament/details/{id}.data` (full record). Fields present in
 /// *both* payloads are required; fields exclusive to one are optional.
-/// Per the corpus audit, `tournament_id`, `name`, `description`, `images`,
-/// `colors`, `slots`, `prize_amount`, `prize_currency`, `start_time`,
-/// `registration_opens`, `status`, `pinned`, and `created_at` are
-/// guaranteed on both endpoints.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 #[allow(clippy::struct_excessive_bools)] // mirrors server payload 1:1

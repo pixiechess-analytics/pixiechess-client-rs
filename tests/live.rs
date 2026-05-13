@@ -251,10 +251,8 @@ async fn live_game_lookup_from_top_match_history() {
 }
 
 // ---------------------------------------------------------------------
-// Tier-2 effectiveness tests — verify every advertised query param
-// actually changes the response in the expected way. Catches future
-// silent-no-op drift; complements the Tier-1 builder-method removals.
-// See tools/audit_corpus.py for the audit driving these.
+// Effectiveness tests — verify every advertised query param actually
+// changes the response in the expected way.
 // ---------------------------------------------------------------------
 
 #[tokio::test]

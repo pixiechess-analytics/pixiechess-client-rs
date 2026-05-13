@@ -1,6 +1,4 @@
 //! User profile + match history models.
-//!
-//! Mirrors `pixiechess-client-py-old/src/pixiechess_client/models/user.py`.
 
 use std::collections::HashMap;
 
@@ -23,10 +21,8 @@ pub struct ColorRecord {
 /// `{"user": …}` envelope, which the resource unwraps before returning
 /// this type).
 ///
-/// All fields are required — every one is present and non-null in every
-/// response captured in the fixture corpus. If the server starts omitting
-/// or nulling a field, deserialization will fail loudly; that's intentional
-/// (see `tools/audit_corpus.py`).
+/// All fields are required. If the server omits or nulls one,
+/// deserialization fails loudly.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct User {
@@ -70,8 +66,8 @@ pub struct MatchTiming {
 /// One row from `GET /user/match-history/{address}`.
 ///
 /// `tournament_id` is present on tournament matches and absent on casual
-/// ones. `rated` and `rating_change` appear only on rated entries. `winner`
-/// is always present but null on draws.
+/// ones. `rated` and `rating_change` appear only on rated entries.
+/// `winner` is always present but null on draws.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct MatchHistoryEntry {
@@ -154,9 +150,8 @@ mod tests {
 
     #[test]
     fn user_missing_required_field_errors() {
-        // The corpus audit pins every field on `User`; removing any one
-        // should fail to decode — guards against accidentally re-introducing
-        // Option<> on a field the wire always supplies.
+        // Every field on `User` is required; removing any one must fail
+        // to decode.
         let mut raw = full_user_json();
         raw.as_object_mut().unwrap().remove("lastLogin");
         let res: Result<User, _> = serde_json::from_value(raw);

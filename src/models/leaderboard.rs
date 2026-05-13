@@ -1,7 +1,5 @@
 //! Leaderboard models — both the rating-based `/leaderboard` and the
 //! points-based `/points-leaderboard`.
-//!
-//! Mirrors `pixiechess-client-py-old/src/pixiechess_client/models/leaderboard.py`.
 
 use serde::{Deserialize, Serialize};
 
@@ -10,8 +8,7 @@ use crate::models::common::Helmet;
 /// One row from `GET /leaderboard`.
 ///
 /// `current_game_id` / `current_game_player` only appear on rows whose
-/// player is mid-match (~4% of captured rows); everything else is always
-/// present per the corpus audit.
+/// player is mid-match; everything else is always present.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct LeaderboardEntry {
@@ -47,9 +44,7 @@ pub struct LeaderboardStats {
 ///
 /// `current_user`'s shape varies with the caller's auth state — this
 /// client doesn't model the auth surface, so the field is intentionally
-/// kept as raw [`serde_json::Value`]. Inside the captured (unauthenticated)
-/// corpus it carries a minimal `{rank: null, rating, streak, wins, …}`
-/// projection; a logged-in caller may get a richer payload.
+/// kept as raw [`serde_json::Value`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct LeaderboardPage {
@@ -96,9 +91,7 @@ pub struct PointsLeaderboardCurrentUser {
 
 /// One page of `GET /points-leaderboard`.
 ///
-/// `current_user` only appears when the caller is authenticated; the
-/// corpus was captured signed-in, but unauthenticated callers will see
-/// it absent.
+/// `current_user` is only emitted when the caller is authenticated.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct PointsLeaderboardPage {

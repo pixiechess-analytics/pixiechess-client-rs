@@ -24,12 +24,8 @@ impl<'c> LeaderboardResource<'c> {
         Self { http }
     }
 
-    /// Fetch one page of the rating leaderboard.
-    ///
-    /// The page size is server-pinned at 15 and not configurable — the
-    /// `pageSize` / `limit` query params were verified silently ignored
-    /// in the live-API audit (see `tools/audit_corpus.py` + lib docs on
-    /// the behavior-pinning policy).
+    /// Fetch one page of the rating leaderboard. Page size is server-pinned
+    /// at 15 and not configurable.
     #[must_use]
     pub fn get(&self) -> LeaderboardGetBuilder<'c> {
         LeaderboardGetBuilder {
@@ -39,8 +35,7 @@ impl<'c> LeaderboardResource<'c> {
     }
 
     /// Iterate every entry across all pages of the rating leaderboard.
-    // Method is named `iter` to mirror the Python client; the returned
-    // builder is not a real `Iterator` (it produces an async `Stream`).
+    // Not a real `Iterator`; produces an async `Stream`.
     #[must_use]
     #[allow(clippy::should_implement_trait, clippy::iter_not_returning_iterator)]
     pub fn iter(&self) -> LeaderboardIterBuilder<'c> {

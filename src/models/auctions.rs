@@ -1,6 +1,4 @@
 //! Auction-related models.
-//!
-//! Mirrors `pixiechess-client-py-old/src/pixiechess_client/models/auctions.py`.
 
 use chrono::{DateTime, Datelike, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
@@ -189,8 +187,7 @@ pub struct PastAuctionsPage {
 }
 
 /// Deserializer for `"MM/DD"` date strings the server sends on
-/// `PastAuction.end_date`. The year defaults to the current calendar
-/// year (mirrors the Python validator).
+/// `PastAuction.end_date`. The year defaults to the current calendar year.
 mod md_date {
     use chrono::{Datelike, NaiveDate, Utc};
     use serde::{Deserialize, Deserializer};

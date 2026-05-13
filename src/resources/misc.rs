@@ -120,10 +120,8 @@ impl VaultBalanceBuilder<'_> {
     }
 }
 
-/// Builder for [`MiscResource::live_feed`].
-///
-/// `since` and `type` query params were verified silently ignored on
-/// the live API and are not exposed; only `limit` is.
+/// Builder for [`MiscResource::live_feed`]. Only `limit` is honored by
+/// the upstream; no other filter knobs are exposed.
 pub struct LiveFeedBuilder<'c> {
     http: &'c HttpClient,
     limit: Option<u32>,

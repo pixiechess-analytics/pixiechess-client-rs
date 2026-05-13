@@ -35,7 +35,7 @@ impl<'c> PiecesResource<'c> {
     }
 
     /// Iterate every piece owned by `address`, fetching pages on demand.
-    // Mirrors the Python client's `iter()`. Not a `std::iter::Iterator`.
+    // Not a `std::iter::Iterator` — produces an async `Stream`.
     #[must_use]
     #[allow(clippy::should_implement_trait, clippy::iter_not_returning_iterator)]
     pub fn iter(&self, address: impl Into<String>) -> PiecesIterBuilder<'c> {

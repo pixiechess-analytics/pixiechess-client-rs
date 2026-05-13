@@ -1,6 +1,4 @@
 //! Shared serde models used across multiple resource bodies.
-//!
-//! Mirrors `pixiechess-client-py-old/src/pixiechess_client/models/common.py`.
 
 use serde::{Deserialize, Serialize};
 
@@ -16,9 +14,6 @@ pub struct Helmet {
 
 /// Compact player identity returned inline on match-history rows and
 /// similar two-player contexts.
-///
-/// Every field is required by the corpus (120/120 white/black side records
-/// across 60 captured matches).
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct PlayerInfo {
@@ -116,8 +111,7 @@ mod tests {
 
     #[test]
     fn player_info_missing_required_field_errors() {
-        // PlayerInfo's required fields are pinned by the corpus audit; any
-        // missing field should fail to decode (no silent defaults).
+        // Required fields must fail to decode when missing — no silent defaults.
         let raw = json!({"address": "0xdef"});
         let res: Result<PlayerInfo, _> = serde_json::from_value(raw);
         assert!(res.is_err());

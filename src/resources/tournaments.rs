@@ -15,12 +15,9 @@ impl<'c> TournamentsResource<'c> {
         Self { http }
     }
 
-    /// `GET /tournament/list`.
-    ///
-    /// `limit` and `offset` are required by the server; the builder
-    /// always sends them. Other knobs (`pinned`, `active`, `dateFilter`,
-    /// `tzOffset`) are honored on the live API. The `sort` query param
-    /// was verified silently ignored and is not exposed.
+    /// `GET /tournament/list`. `limit` and `offset` are required by the
+    /// server; the builder always sends them. `pinned`, `active`,
+    /// `dateFilter`, and `tzOffset` are honored.
     #[must_use]
     pub fn list(&self) -> TournamentsListBuilder<'c> {
         TournamentsListBuilder {
