@@ -39,27 +39,41 @@ pub struct TournamentColors {
 }
 
 /// One registered (or pending-registration) player's snapshot on a tournament.
-#[derive(Debug, Clone, Deserialize, Serialize, Default, PartialEq, Eq)]
+///
+/// `username` is ~98% present (a small number of accounts emit `_id`+helmet
+/// without it). Burn-related fields (`burnInitiatedAt`,
+/// `pendingBurnTxHash{,es}`, `dropReason`, `droppedAtStart`) appear only on
+/// entries actively going through a burn-and-confirm flow.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct TournamentUserInfo {
-    #[serde(default)]
-    pub user_id: Option<String>,
-    #[serde(default)]
-    pub username: Option<String>,
-    #[serde(default)]
-    pub username_display: Option<String>,
-    #[serde(default)]
-    pub helmet: Option<Helmet>,
-    #[serde(default)]
-    pub expires: Option<i64>,
+    pub user_id: String,
+    pub username_display: String,
+    pub helmet: Helmet,
+    pub expires: i64,
     #[serde(default)]
     pub chosen_pieces: Vec<String>,
     #[serde(default)]
     pub free_piece_keys: Vec<String>,
     #[serde(default)]
+    pub pending_burn_asset_ids: Vec<serde_json::Value>,
+
+    #[serde(default)]
+    pub username: Option<String>,
+    #[serde(default)]
     pub confirmed_entry_tx_hash: Option<String>,
     #[serde(default)]
-    pub pending_burn_asset_ids: Vec<serde_json::Value>,
+    pub signup_at: Option<i64>,
+    #[serde(default)]
+    pub burn_initiated_at: Option<i64>,
+    #[serde(default)]
+    pub pending_burn_tx_hash: Option<String>,
+    #[serde(default)]
+    pub pending_burn_tx_hashes: Vec<String>,
+    #[serde(default)]
+    pub drop_reason: Option<String>,
+    #[serde(default)]
+    pub dropped_at_start: Option<bool>,
 }
 
 /// Burn ruleset for a tournament.
@@ -137,12 +151,16 @@ pub struct MatchupSource {
     pub id: Option<String>,
 }
 
-/// Bracket parents for a matchup. `null` on first-round entries.
+/// Bracket parents for a matchup. The whole block is `null` on first-round
+/// entries; individual `top` / `bottom` can also be `null` when a parent
+/// slot has no source (e.g. a bye in an irregular bracket).
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct SourceMatches {
-    pub top: MatchupSource,
-    pub bottom: MatchupSource,
+    #[serde(default)]
+    pub top: Option<MatchupSource>,
+    #[serde(default)]
+    pub bottom: Option<MatchupSource>,
     #[serde(default, rename = "_id")]
     pub id: Option<String>,
 }

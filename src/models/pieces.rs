@@ -69,7 +69,11 @@ pub struct Piece {
     pub collection_address: String,
     pub token_id: i64,
     pub owner: String,
-    pub metadata: PieceMetadata,
+    /// Almost always present, but a small fraction (~1 in 350 burned rows
+    /// in the sample) ship without `metadata` — when the underlying NFT
+    /// pre-dates the metadata pipeline.
+    #[serde(default)]
+    pub metadata: Option<PieceMetadata>,
     pub last_transfer_block_number: i64,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -132,8 +136,12 @@ mod tests {
         assert_eq!(p.token_id, 42);
         assert_eq!(p.count, Some(3));
         assert!(p.burned.is_none());
-        assert_eq!(p.metadata.attributes.len(), 3);
-        assert_eq!(p.metadata.attributes[1].value, json!(7));
+        let md = p
+            .metadata
+            .as_ref()
+            .expect("metadata present in this payload");
+        assert_eq!(md.attributes.len(), 3);
+        assert_eq!(md.attributes[1].value, json!(7));
     }
 
     #[test]

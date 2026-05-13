@@ -70,6 +70,9 @@ pub struct AuctionPieceInfo {
     pub total_units_sold: u32,
     #[serde(default)]
     pub most_recent_past_auction: Option<PastAuction>,
+    /// `_meta.suggestSignup` prompt the server sometimes attaches.
+    #[serde(rename = "_meta", default)]
+    pub meta: Option<crate::models::common::ResponseMeta>,
 }
 
 /// One row from the VRGDA price block returned by `/prices`.

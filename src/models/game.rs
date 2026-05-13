@@ -8,6 +8,8 @@ use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+use crate::models::common::ResponseMeta;
+
 /// Inner block on a finished game describing how it ended (often empty
 /// today, room for the server to add more diagnostic fields).
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Default)]
@@ -75,11 +77,22 @@ pub struct Game {
     #[serde(default)]
     pub piece_selection_start_time: Option<i64>,
     /// Unix-milliseconds timestamp; the server emits this as a raw integer
-    /// (not an RFC-3339 string like `created_at`/`updated_at`).
+    /// (not an RFC-3339 string like `created_at`/`updated_at`). Present on
+    /// finished games (~70% of captured records).
     #[serde(default)]
     pub finished_at: Option<i64>,
+    /// Only set when the server flips it; absent on most rows. Distinct
+    /// from a literal `false`, hence `Option<bool>` rather than `bool` +
+    /// `#[serde(default)]`.
     #[serde(default)]
-    pub rematch_declined: bool,
+    pub rematch_declined: Option<bool>,
+    /// Set on games where the resign was reconciled offline by a backfill
+    /// job. ~13% of finished games in the captured sample.
+    #[serde(default)]
+    pub backfilled_early_resign: Option<bool>,
+    /// `_meta.suggestSignup` prompt the server sometimes attaches.
+    #[serde(rename = "_meta", default)]
+    pub meta: Option<ResponseMeta>,
 }
 
 /// Response from `GET /game/{gameId}/rating/{address}` — the rating
@@ -94,6 +107,9 @@ pub struct RatingChange {
     pub rating_after: Option<f64>,
     #[serde(default)]
     pub change: Option<f64>,
+    /// `_meta.suggestSignup` prompt the server sometimes attaches.
+    #[serde(rename = "_meta", default)]
+    pub meta: Option<ResponseMeta>,
 }
 
 #[cfg(test)]
