@@ -1,6 +1,6 @@
-//! Unofficial async Rust client for the [PixieChess](https://www.pixiechess.xyz) API.
+//! Unofficial async Rust client for the [`PixieChess`](https://www.pixiechess.xyz) API.
 //!
-//! Not affiliated with PixieChess. Consumes the public `api.pixiechess.xyz` surface.
+//! Not affiliated with `PixieChess`. Consumes the public `api.pixiechess.xyz` surface.
 //!
 //! # Quickstart
 //!
