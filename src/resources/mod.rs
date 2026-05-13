@@ -9,4 +9,5 @@ pub mod auctions;
 pub mod games;
 pub mod leaderboard;
 pub mod pieces;
+pub mod tournaments;
 pub mod users;

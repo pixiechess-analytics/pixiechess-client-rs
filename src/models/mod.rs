@@ -9,6 +9,7 @@ pub mod common;
 pub mod game;
 pub mod leaderboard;
 pub mod pieces;
+pub mod tournaments;
 pub mod user;
 
 pub use auctions::{
@@ -23,4 +24,9 @@ pub use leaderboard::{
     PointsLeaderboardPage,
 };
 pub use pieces::{BurnedInfo, BurnedTournament, Piece, PieceAttribute, PieceMetadata, PiecesPage};
+pub use tournaments::{
+    BurnRuleset, GameTiming, GameTimingPlayer, GameplayRuleset, NotificationStatus, PayoutSplit,
+    SubstitutionRule, Tournament, TournamentColors, TournamentDetails, TournamentImages,
+    TournamentList, TournamentRuleset, TournamentUserInfo, WaitlistEntry,
+};
 pub use user::{ColorRecord, MatchHistoryEntry, MatchHistoryPage, MatchTiming, User};
