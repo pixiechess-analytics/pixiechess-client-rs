@@ -18,8 +18,14 @@ pub struct Helmet {
 #[serde(rename_all = "camelCase")]
 pub struct PlayerInfo {
     pub address: String,
-    pub username: String,
-    pub username_display: String,
+    /// Absent for "ghost" wallets — addresses that played games but
+    /// never registered a username. The /user/{addr} endpoint also 404s
+    /// for these.
+    #[serde(default)]
+    pub username: Option<String>,
+    /// Absent for ghost wallets; see [`Self::username`].
+    #[serde(default)]
+    pub username_display: Option<String>,
     /// Absent for users who haven't equipped one.
     #[serde(default)]
     pub helmet: Option<Helmet>,
@@ -106,15 +112,26 @@ mod tests {
         });
         let p: PlayerInfo = serde_json::from_value(raw).unwrap();
         assert_eq!(p.address, "0xabc");
-        assert_eq!(p.username, "alice");
-        assert_eq!(p.username_display, "Alice");
+        assert_eq!(p.username.as_deref(), Some("alice"));
+        assert_eq!(p.username_display.as_deref(), Some("Alice"));
         assert_eq!(p.helmet.as_ref().unwrap().key, "knightmare");
     }
 
     #[test]
-    fn player_info_missing_required_field_errors() {
-        // Required fields must fail to decode when missing — no silent defaults.
+    fn player_info_decodes_ghost_address() {
+        // Ghost addresses (played games but never registered) appear in
+        // match-history payloads with only `address` populated.
         let raw = json!({"address": "0xdef"});
+        let p: PlayerInfo = serde_json::from_value(raw).unwrap();
+        assert_eq!(p.address, "0xdef");
+        assert!(p.username.is_none());
+        assert!(p.username_display.is_none());
+        assert!(p.helmet.is_none());
+    }
+
+    #[test]
+    fn player_info_missing_address_errors() {
+        let raw = json!({"username": "alice"});
         let res: Result<PlayerInfo, _> = serde_json::from_value(raw);
         assert!(res.is_err());
     }

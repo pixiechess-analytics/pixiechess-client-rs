@@ -61,8 +61,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!(
             "  {}  {} vs {}  →  {} ({})",
             m.created_at.format("%Y-%m-%d"),
-            m.white.username_display,
-            m.black.username_display,
+            m.white.username_display.as_deref().unwrap_or("<ghost>"),
+            m.black.username_display.as_deref().unwrap_or("<ghost>"),
             m.outcome,
             m.result_for_user,
         );
