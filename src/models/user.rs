@@ -21,8 +21,9 @@ pub struct ColorRecord {
 /// `{"user": …}` envelope, which the resource unwraps before returning
 /// this type).
 ///
-/// All fields are required. If the server omits or nulls one,
-/// deserialization fails loudly.
+/// Several fields can be absent for some accounts — see the per-field
+/// comments. The remaining fields are required; if the server omits one
+/// of those, deserialization fails loudly.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct User {
@@ -42,7 +43,9 @@ pub struct User {
     /// Absent on some accounts.
     #[serde(default)]
     pub helmet: Option<Helmet>,
-    pub last_login: DateTime<Utc>,
+    /// Absent on some accounts.
+    #[serde(default)]
+    pub last_login: Option<DateTime<Utc>>,
 
     pub win_rate: u32,
     pub match_count: u32,
@@ -158,12 +161,23 @@ mod tests {
 
     #[test]
     fn user_missing_required_field_errors() {
-        // Every field on `User` is required; removing any one must fail
-        // to decode.
+        // Removing a required field (e.g. `rating`) must fail to decode.
+        // Fields with `#[serde(default)]` (username, helmet, last_login, …)
+        // are allowed to be absent.
         let mut raw = full_user_json();
-        raw.as_object_mut().unwrap().remove("lastLogin");
+        raw.as_object_mut().unwrap().remove("rating");
         let res: Result<User, _> = serde_json::from_value(raw);
         assert!(res.is_err());
+    }
+
+    #[test]
+    fn user_missing_last_login_decodes() {
+        // `lastLogin` is absent on some accounts; decoding must succeed
+        // and leave the field as `None`.
+        let mut raw = full_user_json();
+        raw.as_object_mut().unwrap().remove("lastLogin");
+        let u: User = serde_json::from_value(raw).unwrap();
+        assert!(u.last_login.is_none());
     }
 
     fn full_player_json(addr: &str, name: &str) -> serde_json::Value {
