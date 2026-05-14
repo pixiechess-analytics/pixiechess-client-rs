@@ -40,7 +40,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let user = client.users().get(&top.address).send().await?;
     println!(
         "\nTop player profile (typed):\n  {} — rating {:.1}, {} match(es), trophies {}",
-        user.username_display, user.rating, user.match_count, user.trophies
+        user.username_display.as_deref().unwrap_or("<no username>"),
+        user.rating,
+        user.match_count,
+        user.trophies,
     );
 
     // Raw: bypass the typed model and pull out one nested field.

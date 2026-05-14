@@ -289,7 +289,7 @@ mod tests {
             .build()
             .unwrap();
         let user = client.users().get("alice").send().await.unwrap();
-        assert_eq!(user.username, "alice");
+        assert_eq!(user.username.as_deref(), Some("alice"));
         assert_eq!(user.address, "0xabc");
     }
 

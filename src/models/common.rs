@@ -18,15 +18,13 @@ pub struct Helmet {
 #[serde(rename_all = "camelCase")]
 pub struct PlayerInfo {
     pub address: String,
-    /// Absent for "ghost" wallets — addresses that played games but
-    /// never registered a username. The /user/{addr} endpoint also 404s
-    /// for these.
+    /// Absent on some accounts.
     #[serde(default)]
     pub username: Option<String>,
-    /// Absent for ghost wallets; see [`Self::username`].
+    /// Absent on some accounts.
     #[serde(default)]
     pub username_display: Option<String>,
-    /// Absent for users who haven't equipped one.
+    /// Absent on some accounts.
     #[serde(default)]
     pub helmet: Option<Helmet>,
 }
@@ -118,9 +116,7 @@ mod tests {
     }
 
     #[test]
-    fn player_info_decodes_ghost_address() {
-        // Ghost addresses (played games but never registered) appear in
-        // match-history payloads with only `address` populated.
+    fn player_info_decodes_with_only_address() {
         let raw = json!({"address": "0xdef"});
         let p: PlayerInfo = serde_json::from_value(raw).unwrap();
         assert_eq!(p.address, "0xdef");
