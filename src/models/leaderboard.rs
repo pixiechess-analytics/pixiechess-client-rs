@@ -16,7 +16,7 @@ pub struct LeaderboardEntry {
     pub address: String,
     pub username: String,
     pub username_display: String,
-    /// Absent for users who haven't equipped one.
+    /// Absent on some accounts.
     #[serde(default)]
     pub helmet: Option<Helmet>,
     pub rating: f64,
@@ -67,7 +67,7 @@ pub struct PointsLeaderboardEntry {
     pub address: String,
     pub username: String,
     pub username_display: String,
-    /// Absent for users who haven't equipped one.
+    /// Absent on some accounts.
     #[serde(default)]
     pub helmet: Option<Helmet>,
     pub total_points: u64,

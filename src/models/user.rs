@@ -30,10 +30,16 @@ pub struct User {
     pub id: String,
     pub address: String,
 
-    pub username: String,
-    pub username_display: String,
-    pub wallet_client_type: String,
-    /// Absent for users who haven't equipped one.
+    /// Absent on some accounts.
+    #[serde(default)]
+    pub username: Option<String>,
+    /// Absent on some accounts.
+    #[serde(default)]
+    pub username_display: Option<String>,
+    /// Absent on some accounts.
+    #[serde(default)]
+    pub wallet_client_type: Option<String>,
+    /// Absent on some accounts.
     #[serde(default)]
     pub helmet: Option<Helmet>,
     pub last_login: DateTime<Utc>,
@@ -142,7 +148,7 @@ mod tests {
     #[test]
     fn user_full_with_stats() {
         let u: User = serde_json::from_value(full_user_json()).unwrap();
-        assert_eq!(u.username, "alice");
+        assert_eq!(u.username.as_deref(), Some("alice"));
         assert_eq!(u.win_rate, 65);
         assert_eq!(u.wins, 65);
         assert_eq!(u.color_record["white"].wins, 30);
